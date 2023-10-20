@@ -1,0 +1,19 @@
+{
+  "name": "pramasti-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start-dev": "nodemon server.js",
+    "lint": "eslint ./"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "eslint": "^8.51.0",
+    "eslint-config-google": "^0.14.0",
+    "nodemon": "^3.0.1"
+  }
+}
