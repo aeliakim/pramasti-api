@@ -1,0 +1,87 @@
+
+Table users {
+  user_id int [primary key, increment]
+  nrp int
+  nama varchar(255)
+  password varchar(255)
+  email varchar(255)
+  nohp varchar(20)
+  departemen varchar(255)
+  role enum('mahasiswa', 'asisten', 'koordinator', 'dosen', 'admin')
+  profil_picture varchar(255) //link ke file gambar
+}
+
+Table praktikum {
+  praktikum_id int [primary key, increment]
+  praktikum_name varchar(255)
+  praktikum_tglmulai date
+  praktikum_tglselesai date
+  deskripsi text
+}
+
+Table jadwalPraktikum {
+  jadwal_id int [primary key, increment]
+  praktikum_id int
+  tanggal date
+  waktu_mulai time
+  ruang varchar(100)
+}
+
+Table kelompok {
+  kelompok_id int [primary key, increment]
+  jadwal_id int
+  kapasitas int // jumlah maksimal anggota kelompok
+  nama_kelompok varchar(255)
+}
+
+Table mhsPilihPraktikum {
+  mahasiswa_id int
+  praktikum_id int
+  jadwal_id int
+  kelompok_id int
+}
+
+Table asisten {
+  asisten_id int [primary key]
+  praktikum_id int
+}
+
+Table nilai {
+  nilai_id int [primary key]
+  mahasiswa_id int
+  praktikum_id int
+  nilai decimal(5,2)
+}
+
+Table pengumuman {
+  pengumuman_id int [primary key]
+  judul varchar(255)
+  isi_pengumuman text
+  tanggal date
+  oleh_id int
+}
+
+Table asistenJadwal {
+  asisten_id int
+  jadwal_id int
+}
+
+Table roles {
+  role_id int
+  role_name varchar(100)
+  user_id int
+}
+
+Ref: "asisten"."asisten_id" - "users"."user_id" // one-to-one
+Ref: "praktikum"."praktikum_id" < "jadwalPraktikum"."praktikum_id" // one-to-many
+Ref: "praktikum"."praktikum_id" < "asisten"."praktikum_id" // one-to-many
+Ref: "users"."user_id" < "nilai"."mahasiswa_id" // one-to-many
+Ref: "users"."user_id" < "mhsPilihPraktikum"."mahasiswa_id" // one-to-many
+Ref: "praktikum"."praktikum_id" < "mhsPilihPraktikum"."praktikum_id" // one-to-many
+Ref: "jadwalPraktikum"."jadwal_id" <> "mhsPilihPraktikum"."jadwal_id" // many-to-many
+Ref: "asisten"."asisten_id" < "asistenJadwal"."asisten_id" // one-to-many
+Ref: "jadwalPraktikum"."jadwal_id" < "asistenJadwal"."jadwal_id" // one-to-many
+Ref: "users"."user_id" < "roles"."user_id" // one-to-many
+Ref: "users"."user_id" < "pengumuman"."oleh_id" // one-to-many
+Ref: "jadwalPraktikum"."jadwal_id" < "kelompok"."jadwal_id" // one-to-many
+Ref: "kelompok"."kelompok_id" < "mhsPilihPraktikum"."kelompok_id" // one-to-many
