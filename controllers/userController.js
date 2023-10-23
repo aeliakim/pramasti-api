@@ -121,7 +121,7 @@ const login = async (req, res) => {
 
       // Make JWT
       const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET,
-          {expiresIn: '1hr'});
+          {expiresIn: '2hr'});
       const refreshToken = jwt.sign(user, process.env.REFRESH_TOKEN_SECRET,
           {expiresIn: '365d'});
 
@@ -156,6 +156,27 @@ const login = async (req, res) => {
   });
 };
 
+const token = async (req, res) => {
+  // Retrieve user detail
+  const {nrp, name} = req;
+  const user = {
+    nrp,
+    name,
+  };
+
+  // Make JWT
+  const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET,
+      {expiresIn: '2hr'});
+
+  return res.status(200).send({
+    code: '200',
+    status: 'OK',
+    data: {
+      accessToken: accessToken,
+    },
+  });
+};
+
 module.exports = {
-  login, register,
+  login, register, token,
 };
