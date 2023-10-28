@@ -8,6 +8,7 @@ const {
   validateNRP,
 } = require('../utils/validation.js');
 
+// sign up
 const register = async (req, res) => {
   const {nama, nrp, email, password, nohp, departemen} = req.body;
   // Check all attribute
@@ -21,7 +22,7 @@ const register = async (req, res) => {
     });
   }
 
-  // Validate NRP format
+  // Validate NRP / NIP format
   if (validateNRP(nrp)) {
     return res.status(400).send({
       code: '400',
@@ -67,6 +68,14 @@ const register = async (req, res) => {
     });
   }
 
+  // Assign default role based on NRP / NIP
+  let role = 'praktikan';
+  if (nrp.startsWith('502')) {
+    role = 'praktikan';
+  } else if (nrp.startsWith('19')) {
+    role = 'dosen';
+  }
+
   const user = {
     nama,
     nrp,
@@ -74,6 +83,7 @@ const register = async (req, res) => {
     password,
     nohp,
     departemen,
+    role,
   };
 
   // Password hashing
@@ -93,6 +103,7 @@ const register = async (req, res) => {
   });
 };
 
+// sign in
 const login = async (req, res) => {
   const nrp = req.body.nrp;
   const password = req.body.password;
@@ -156,12 +167,14 @@ const login = async (req, res) => {
   });
 };
 
+// token
 const token = async (req, res) => {
   // Retrieve user detail
-  const {nrp, name} = req;
+  const {nrp, name, role} = req;
   const user = {
     nrp,
     name,
+    role,
   };
 
   // Make JWT
@@ -177,6 +190,119 @@ const token = async (req, res) => {
   });
 };
 
+// log out
+const logout = async (req, res) => {
+  const refreshToken = req.refreshToken;
+  try {
+    const result = await knex('tokens')
+        .where('token', refreshToken)
+        .del();
+
+    if (result == 1) {
+      return res.status(200).send({
+        code: '200',
+        status: 'OK',
+        data: {
+          message: 'Sign out success',
+        },
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send({
+      code: '500',
+      status: 'Internal Server Error',
+      errors: {
+        message: 'An error occurred while fetching data',
+      },
+    });
+  }
+};
+
+
+// melihat profile sendiri (all role)
+const profile = async (req, res) => {
+  const {nrp} = req;
+
+  const result = await knex('users').where('nrp', nrp);
+
+  if (result.length == 1) {
+    const user = result[0];
+
+    return res.status(200).send({
+      code: '200',
+      status: 'OK',
+      data: {
+        user_id: user.user_id,
+        name: user.name,
+        nrp: user.nrp,
+        departemen: user.departemen,
+        nohp: user.nohp,
+        email: user.email,
+      },
+    });
+  }
+};
+
+// melihat profile asisten
+const assistantProfile = async (req, res) => {
+  const userId = req.user_id;
+
+  const studentChoice = await knex('mhsPilihPraktikum')
+      .where('mahasiswa_id', userId).first();
+
+  if (!studentChoice) {
+    return res.status(404).send({
+      code: '404',
+      status: 'Not Found',
+      message: 'Praktikan belum mempunyai kelompok.',
+    });
+  }
+
+  // Mengambil kelompok_id dari pilihan praktikan
+  const studentGroupId = studentChoice.kelompok_id;
+
+  // Mengambil user_id asisten berdasarkan asisten_id dari kelompok
+  const group = await knex('kelompok')
+      .where('kelompok_id', studentGroupId).first();
+
+  if (!group) {
+    return res.status(404).send({
+      code: '404',
+      status: 'Not Found',
+      message: 'Group not found',
+    });
+  }
+
+  const assistantUserId = group.asisten_id;
+
+  // Mengambil profil asisten dari tabel users
+  const assistant = await knex('users')
+      .where('user_id', assistantUserId).first();
+
+  if (!assistant) {
+    return res.status(404).send({
+      code: '404',
+      status: 'Not Found',
+      message: 'Assistant not found',
+    });
+  }
+
+  return res.status(200).send({
+    code: '200',
+    status: 'OK',
+    data: {
+      user_id: assistant.user_id,
+      name: assistant.nama,
+      nrp: assistant.nrp,
+      departemen: assistant.departemen,
+      nohp: assistant.nohp,
+      email: assistant.email,
+      profile_picture: assistant.profil_picture,
+    },
+  });
+};
+
 module.exports = {
-  login, register, token,
+  login, register, token, logout, profile, assistantProfile,
 };

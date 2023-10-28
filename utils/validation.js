@@ -1,7 +1,7 @@
 const validateNRP = (usernameNRP) => {
   return !nrp.match(
-      // NRP must be between 10-15 numbers
-      /^\d{10,15}$/,
+      // NRP / NIP must be between 10-20 numbers
+      /^\d{10,20}$/,
   );
 };
 

@@ -49,6 +49,7 @@ const authenticateAccessToken = (req, res, next) => {
     req.name = decoded.name;
     req.user_id = decoded.user_id;
     req.created_at = decoded.created_at;
+    req.role = decoded.role;
     next();
   });
 };
@@ -114,6 +115,7 @@ const authenticateRefreshToken = (req, res, next) => {
         req.name = decoded.name;
         req.user_id = decoded.user_id;
         req.created_at = decoded.created_at;
+        req.role = decoded.role;
         next();
       });
 };
@@ -156,17 +158,33 @@ const optionalAuthenticateAccessToken = (req, res, next) => {
         });
       }
 
-      req.email = decoded.email;
+      req.nrp = decoded.nrp;
       req.name = decoded.name;
       req.user_id = decoded.user_id;
       req.created_at = decoded.created_at;
+      req.role = decoded.role;
       next();
     });
   }
 };
 
+const authorize = (role) => {
+  return (req, res, next) => {
+    if (req.user && req.user.role && req.user.role === role) {
+      next();
+    } else {
+      res.status(403).send({
+        code: '403',
+        status: 'Forbidden',
+        errors: {
+          message: 'Access denied. You do not have the required role.',
+        },
+      });
+    }
+  };
+};
 
 module.exports = {authenticateAccessToken,
   authenticateRefreshToken,
-  optionalAuthenticateAccessToken};
+  optionalAuthenticateAccessToken, authorize};
 

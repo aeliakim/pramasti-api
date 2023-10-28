@@ -7,7 +7,7 @@ Table users {
   email varchar(255)
   nohp varchar(20)
   departemen varchar(255)
-  role enum('mahasiswa', 'asisten', 'koordinator', 'dosen', 'admin')
+  role enum('praktikan', 'asisten', 'koordinator', 'dosen', 'admin')
   profil_picture varchar(255) //link ke file gambar
 }
 
