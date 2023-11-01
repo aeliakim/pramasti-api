@@ -4,7 +4,18 @@ const {knex} = require('../configs/data-source.js');
 // melihat daftar praktikum yang tersedia
 const getAllPraktikum = async (req, res) => {
   try {
+    const praktikums = await knex('praktikum')
+        .join('nilai', 'praktikum.praktikum_id', 'nilai.praktikum_id')
+        .select('praktikum.praktikum_name',
+            'praktikum.deskripsi',
+            'praktikum.logo_praktikum',
+            'nilai.nilai as nilai');
 
+    return res.status(200).send({
+      code: '200',
+      status: 'Success',
+      data: praktikums,
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).send({
@@ -16,20 +27,51 @@ const getAllPraktikum = async (req, res) => {
     });
   }
 };
+
 // melihat jadwal praktikum
+const getAllJadwal = async (req, res) => {
+  try {
+    const jadwal = await knex('jadwalPraktikum')
+        .join('praktikum', 'asisten', 'jadwalPraktikum.praktikum_id',
+            'praktikum.praktikum_id',
+            'asisten.praktikum_id')
+        .select('praktikum.praktikum_name as nama_praktikum',
+            'jadwalPraktikum.judul_modul',
+            'jadwalPraktikum.tanggal',
+            'jadwalPraktikum.waktu_mulai as sesi',
+            'asisten.',
+        ); // tambah join dari tabel asisten (nama asisten) + kelompok
+
+    return res.status(200).send({
+      code: '200',
+      status: 'Success',
+      data: jadwal,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send({
+      code: '500',
+      status: 'Internal Server Error',
+      errors: {
+        message: 'An error occurred while adding data',
+      },
+    });
+  }
+};
 
 // buat jadwal praktikum
 const addJadwalPraktikum = async (req, res) => {
   try {
     const {
       praktikum_id,
+      judul_modul,
       tanggal,
       waktu_mulai,
-      ruang,
+      kuota,
     } = req.body;
 
     // validasi input
-    if (!praktikum_id || !tanggal || !waktu_mulai || !ruang) {
+    if (!praktikum_id || !judul_modul || !tanggal || !waktu_mulai || !kuota) {
       return res.status(400).send({
         code: '400',
         status: 'Bad Request',
@@ -42,17 +84,19 @@ const addJadwalPraktikum = async (req, res) => {
     // Menyimpan ke database
     const [jadwalId] = await knex('jadwalPraktikum').insert({
       praktikum_id,
+      judul_modul,
       tanggal,
       waktu_mulai,
-      ruang,
+      kuota,
     });
 
     const jadwalPraktikum = {
       jadwal_id: jadwalId,
       praktikum_id,
+      judul_modul,
       tanggal,
       waktu_mulai,
-      ruang,
+      kuota,
     };
 
     return res.status(201).send({
@@ -110,13 +154,10 @@ const deleteJadwalPraktikum = async (req, res) => {
 const addPraktikum = async (req, res) => {
   try {
     const {praktikum_name,
-      praktikum_tglmulai,
-      praktikum_tglselesai,
       deskripsi} = req.body;
 
     // validasi input
-    if (!praktikum_name || !praktikum_tglmulai ||
-      !praktikum_tglselesai || !deskripsi) {
+    if (!praktikum_name || !deskripsi) {
       return res.status(400).send({
         code: '400',
         status: 'Bad Request',
@@ -128,13 +169,11 @@ const addPraktikum = async (req, res) => {
     // Menyimpan ke database
     const [praktikumId] = await knex('praktikum').insert({
       praktikum_name,
-      praktikum_tglmulai,
-      praktikum_tglselesai,
       deskripsi,
     });
 
     const praktikum = {praktikum_id: praktikumId, praktikum_name,
-      praktikum_tglmulai, praktikum_tglselesai, deskripsi};
+      deskripsi};
 
     return res.status(201).send({
       code: '201',
@@ -190,5 +229,5 @@ const deletePraktikum = async (req, res) => {
 
 module.exports = {
   getAllPraktikum, addPraktikum, deletePraktikum, addJadwalPraktikum,
-  deleteJadwalPraktikum,
+  deleteJadwalPraktikum, getAllJadwal,
 };

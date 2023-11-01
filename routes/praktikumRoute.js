@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const {
   getAllPraktikum, addPraktikum, deletePraktikum,
-  addJadwalPraktikum, deleteJadwalPraktikum,
+  addJadwalPraktikum, deleteJadwalPraktikum, getAllJadwal,
 } = require('../controllers/praktikumController');
 /* const {
   authenticateRefreshToken,
@@ -14,5 +14,6 @@ router.post('/praktikum/new-praktikum', addPraktikum);
 router.delete('/praktikum/:praktikum_id', deletePraktikum);
 router.post('/jadwal-praktikum/new-jadwal', addJadwalPraktikum);
 router.delete('/jadwal-praktikum/:jadwal_id', deleteJadwalPraktikum);
+router.get('/jadwal-praktikum', getAllJadwal);
 
 module.exports = router;

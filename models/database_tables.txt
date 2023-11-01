@@ -28,17 +28,17 @@ Table users {
 Table praktikum {
   praktikum_id int [primary key, increment]
   praktikum_name varchar(255)
-  praktikum_tglmulai date
-  praktikum_tglselesai date
   deskripsi text
+  logo_praktikum varchar(255) //link logo praktikum
 }
 
 Table jadwalPraktikum {
   jadwal_id int [primary key, increment]
   praktikum_id int
+  judul_modul varchar(255)
   tanggal date
   waktu_mulai time
-  ruang varchar(100)
+  kuota int
 }
 
 Table kelompok {
