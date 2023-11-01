@@ -8,8 +8,19 @@ Table users {
   nohp varchar(20)
   departemen varchar(255)
   role enum('praktikan', 'asisten', 'koordinator', 'dosen', 'admin')
+  //tambahkan kolom status, approved by, last state
   profil_picture varchar(255) //link ke file gambar
 }
+
+//tambahkan tabel untuk log changes (untuk semua tabel)
+(nama tabel) (nama kolom)
+-user --> siapa yg mengubah
+-tanggal perubahan
+-nama kolom yg diubah
+-tipe perubahan (new, revision, delete)
+-before
+-after --> status terakhir
+-tanggal (now)
 
 Table praktikum {
   praktikum_id int [primary key, increment]
