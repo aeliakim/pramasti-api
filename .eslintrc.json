@@ -5,6 +5,8 @@
         "node": true
     },
     "extends": "google",
+    "overrides": [
+    ],
     "parserOptions": {
         "ecmaVersion": "latest"
     },

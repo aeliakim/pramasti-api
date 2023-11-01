@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const saltRounds = 10;
 const bcrypt = require('bcrypt');
 const {knex} = require('../configs/data-source.js');
+// const multer = require('multer');
 const {
   validateEmail,
   validatePassword,
@@ -303,8 +304,11 @@ const assistantProfile = async (req, res) => {
 };
 
 // upload gambar
+const uploadProfilePicture = async (req, res) => {
 
+};
 
 module.exports = {
   login, register, token, logout, profile, assistantProfile,
+  uploadProfilePicture,
 };

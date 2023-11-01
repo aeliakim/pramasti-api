@@ -1,4 +1,4 @@
-const validateNRP = (usernameNRP) => {
+const validateNRP = (nrp) => {
   return !nrp.match(
       // NRP / NIP must be between 10-20 numbers
       /^\d{10,20}$/,
