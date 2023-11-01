@@ -8,6 +8,9 @@ Table users {
   nohp varchar(20)
   departemen varchar(255)
   role enum('praktikan', 'asisten', 'koordinator', 'dosen', 'admin')
+  status
+  approved by varchar(255)
+  last state
   //tambahkan kolom status, approved by, last state
   profil_picture varchar(255) //link ke file gambar
 }

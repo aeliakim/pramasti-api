@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const saltRounds = 10;
 const bcrypt = require('bcrypt');
-// const {knex} = require('../configs/data-source.js');
+const {knex} = require('../configs/data-source.js');
 const {
   validateEmail,
   validatePassword,
@@ -219,7 +219,6 @@ const logout = async (req, res) => {
   }
 };
 
-
 // melihat profile sendiri (all role)
 const profile = async (req, res) => {
   const {nrp} = req;
@@ -302,6 +301,9 @@ const assistantProfile = async (req, res) => {
     },
   });
 };
+
+// upload gambar
+
 
 module.exports = {
   login, register, token, logout, profile, assistantProfile,
