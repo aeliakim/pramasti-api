@@ -1,4 +1,3 @@
-
 Table users {
   user_id int [primary key, increment]
   nrp int
@@ -8,22 +7,19 @@ Table users {
   nohp varchar(20)
   departemen varchar(255)
   role enum('praktikan', 'asisten', 'koordinator', 'dosen', 'admin')
-  status
-  approved by varchar(255)
-  last state
-  //tambahkan kolom status, approved by, last state
+  approved_by varchar(255)
   profil_picture varchar(255) //link ke file gambar
 }
 
-//tambahkan tabel untuk log changes (untuk semua tabel)
-(nama tabel) (nama kolom)
--user --> siapa yg mengubah
--tanggal perubahan
--nama kolom yg diubah
--tipe perubahan (new, revision, delete)
--before
--after --> status terakhir
--tanggal (now)
+Table log {
+  user varchar(255) [primary key]
+  change_date date
+  changed_column varchar(255)
+  change_type enum('new', 'revision', 'delete')
+  status_before varchar(255)
+  status_after varchar(255)
+  date_now date
+}
 
 Table praktikum {
   praktikum_id int [primary key, increment]
@@ -57,6 +53,7 @@ Table mhsPilihPraktikum {
 
 Table asisten {
   asisten_id int [primary key]
+  user_id int
   praktikum_id int
 }
 
@@ -70,9 +67,7 @@ Table nilai {
 Table pengumuman {
   pengumuman_id int [primary key]
   judul varchar(255)
-  isi_pengumuman text
-  tanggal date
-  oleh_id int
+  deskripsi text
 }
 
 Table asistenJadwal {

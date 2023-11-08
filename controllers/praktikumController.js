@@ -1,3 +1,8 @@
+/* mendapatkan semua praktikum, membuat praktikum baru, menghapus praktikum,
+menambah jadwal praktikum, menghapus jadwal praktikum,
+mendapatkan jadwal praktikum, mengedit nilai,
+menambah nilai,
+melihat daftar peserta berdasarkan tahun ajaran, */
 /* eslint-disable camelcase */
 const {knex} = require('../configs/data-source.js');
 
@@ -11,18 +16,18 @@ const getAllPraktikum = async (req, res) => {
             'praktikum.logo_praktikum',
             'nilai.nilai as nilai');
 
-    return res.status(200).send({
+    return res.status(200).json({
       code: '200',
       status: 'Success',
       data: praktikums,
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).send({
+    return res.status(500).json({
       code: '500',
       status: 'Internal Server Error',
       errors: {
-        message: 'An error occurred while adding data',
+        message: 'An error occurred while fetching data',
       },
     });
   }
@@ -35,25 +40,33 @@ const getAllJadwal = async (req, res) => {
         .join('praktikum', 'asisten', 'jadwalPraktikum.praktikum_id',
             'praktikum.praktikum_id',
             'asisten.praktikum_id')
+        .join('asisten', 'jadwalPraktikum.praktikum_id', 'asisten.praktikum_id')
+        .join('users', 'asisten.user_id', 'users.user_id')
+        .join('kelompok', 'jadwalPraktikum.jadwal_id', 'kelompok.jadwal_id')
         .select('praktikum.praktikum_name as nama_praktikum',
             'jadwalPraktikum.judul_modul',
             'jadwalPraktikum.tanggal',
             'jadwalPraktikum.waktu_mulai as sesi',
-            'asisten.',
-        ); // tambah join dari tabel asisten (nama asisten) + kelompok
+            'users.nama as nama_asisten',
+            'kelompok.nama_kelompok',
+        );
 
-    return res.status(200).send({
+    return res.status(200).json({
       code: '200',
       status: 'Success',
-      data: jadwal,
+      data: jadwal.map((item) => ({
+        ...item,
+        tanggal: item.tanggal.toDateString(),
+        waktu_mulai: item.waktu_mulai.toTimeString(),
+      })),
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).send({
+    return res.status(500).json({
       code: '500',
       status: 'Internal Server Error',
       errors: {
-        message: 'An error occurred while adding data',
+        message: 'An error occurred while fetching data',
       },
     });
   }
@@ -69,10 +82,9 @@ const addJadwalPraktikum = async (req, res) => {
       waktu_mulai,
       kuota,
     } = req.body;
-
     // validasi input
-    if (!praktikum_id || !judul_modul || !tanggal || !waktu_mulai || !kuota) {
-      return res.status(400).send({
+    if (!judul_modul || !tanggal || !waktu_mulai || !kuota) {
+      return res.status(400).json({
         code: '400',
         status: 'Bad Request',
         errors: {
@@ -99,14 +111,14 @@ const addJadwalPraktikum = async (req, res) => {
       kuota,
     };
 
-    return res.status(201).send({
+    return res.status(201).json({
       code: '201',
       status: 'Success',
       data: jadwalPraktikum,
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).send({
+    return res.status(500).json({
       code: '500',
       status: 'Internal Server Error',
       errors: {
@@ -122,7 +134,7 @@ const deleteJadwalPraktikum = async (req, res) => {
         .where('jadwal_id', req.params.jadwalId)
         .del();
     if (result == 1) {
-      return res.status(200).send({
+      return res.status(200).json({
         code: '200',
         status: 'OK',
         data: {
@@ -130,7 +142,7 @@ const deleteJadwalPraktikum = async (req, res) => {
         },
       });
     } else {
-      return res.status(404).send({
+      return res.status(404).json({
         code: '404',
         status: 'Not Found',
         errors: {
@@ -140,7 +152,7 @@ const deleteJadwalPraktikum = async (req, res) => {
     }
   } catch (error) {
     console.error(error);
-    return res.status(500).send({
+    return res.status(500).json({
       code: '500',
       status: 'Internal Server Error',
       errors: {
@@ -158,7 +170,7 @@ const addPraktikum = async (req, res) => {
 
     // validasi input
     if (!praktikum_name || !deskripsi) {
-      return res.status(400).send({
+      return res.status(400).json({
         code: '400',
         status: 'Bad Request',
         errors: {
@@ -175,14 +187,14 @@ const addPraktikum = async (req, res) => {
     const praktikum = {praktikum_id: praktikumId, praktikum_name,
       deskripsi};
 
-    return res.status(201).send({
+    return res.status(201).json({
       code: '201',
       status: 'Success',
       data: praktikum,
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).send({
+    return res.status(500).json({
       code: '500',
       status: 'Internal Server Error',
       errors: {
@@ -199,7 +211,7 @@ const deletePraktikum = async (req, res) => {
         .where('praktikum_id', req.params.praktikumId)
         .del();
     if (result == 1) {
-      return res.status(200).send({
+      return res.status(200).json({
         code: '200',
         status: 'OK',
         data: {
@@ -207,7 +219,7 @@ const deletePraktikum = async (req, res) => {
         },
       });
     } else {
-      return res.status(404).send({
+      return res.status(404).json({
         code: '404',
         status: 'Not Found',
         errors: {
@@ -217,7 +229,7 @@ const deletePraktikum = async (req, res) => {
     }
   } catch (error) {
     console.error(error);
-    return res.status(500).send({
+    return res.status(500).json({
       code: '500',
       status: 'Internal Server Error',
       errors: {

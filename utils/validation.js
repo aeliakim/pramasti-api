@@ -13,7 +13,7 @@ const validateEmail = (email) => {
 
 const validatePassword = (password) => {
   return !password.match(
-      // The password must be minimum 8 characters and contain numbers
+      // The password must be minimum 8 characters and contain numbers+
       /^(?=.*[0-9])[a-zA-Z0-9!@#$%^&*]{8,}$/,
   );
 };

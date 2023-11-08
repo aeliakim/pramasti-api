@@ -170,7 +170,7 @@ const optionalAuthenticateAccessToken = (req, res, next) => {
 
 const authorize = (role) => {
   return (req, res, next) => {
-    if (req.user && req.user.role && req.user.role === role) {
+    if (req.user && req.user.role && roles.includes(req.user.role) === role) {
       next();
     } else {
       res.status(403).send({
