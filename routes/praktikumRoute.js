@@ -10,22 +10,53 @@ const router = express.Router();
 const {
   getAllPraktikum, addPraktikum, deletePraktikum,
   addJadwalPraktikum, deleteJadwalPraktikum, getAllJadwal,
+  ambilJadwal, editJadwal, lihatKelompok, jadwalPrakKoor,
 } = require('../controllers/praktikumController');
 const {
   authorize,
   authenticateAccessToken} = require('../middleware/authenticate');
 
-router.get('/praktikum', getAllPraktikum);
-router.post('/praktikum/new-praktikum',
+// melihat daftar praktikum yang tersedia (all role)
+router.get('/', authenticateAccessToken, getAllPraktikum);
+
+// menambah praktikum baru (admin)
+router.post('/add',
     authenticateAccessToken,
-    authorize(['admin', 'koordinator', 'dosen']), addPraktikum);
-router.delete('/praktikum/:praktikum_id',
-    authenticateAccessToken, authorize(['admin', 'koordinator', 'dosen']),
+    authorize(['admin']), addPraktikum);
+
+// menghapus praktikum (admin)
+router.delete('/:praktikum_id',
+    authenticateAccessToken, authorize(['admin']),
     deletePraktikum);
-router.post('/jadwal-praktikum/new-jadwal', authenticateAccessToken,
+
+// buat jadwal praktikum
+router.post('/:praktikumId/jadwal', authenticateAccessToken,
     authorize(['admin', 'koordinator', 'dosen']), addJadwalPraktikum);
-router.delete('/jadwal-praktikum/:jadwal_id', authenticateAccessToken,
+
+// hapus jadwal praktikum
+router.delete('/:praktikumId/jadwal/:jadwalId',
+    authenticateAccessToken,
     authorize(['admin', 'koordinator', 'dosen']), deleteJadwalPraktikum);
-router.get('/jadwal-praktikum', getAllJadwal);
+
+// melihat jadwal praktikum (praktikan)
+router.get('/jadwal-praktikum', authenticateAccessToken,
+    authorize(['praktikan']), getAllJadwal);
+
+// mengambil jadwal praktikum (praktikan)
+router.post('/:praktikumId', authenticateAccessToken,
+    authorize(['praktikan']), ambilJadwal);
+
+// melihat kelompok untuk 1 praktikum
+router.get('/jadwal-praktikum/:jadwalId/kelompok', authenticateAccessToken,
+    authorize(['praktikan', 'asisten', 'koordinator', 'dosen']), lihatKelompok);
+
+// mengedit jadwal praktikum
+router.put('/:praktikumId/jadwal/:jadwalId',
+    authenticateAccessToken,
+    authorize(['koordinator', 'dosen', 'admin']), editJadwal);
+
+// melihat jadwal praktikum (dashboard koor)
+router.get('/:praktikumId/jadwal', authenticateAccessToken,
+    authorize(['koordinator', 'dosen', 'admin']), jadwalPrakKoor);
 
 module.exports = router;

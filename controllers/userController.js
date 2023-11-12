@@ -14,7 +14,7 @@ const register = async (req, res) => {
   const {nama, nrp, email, password, nohp, departemen} = req.body;
   // Check all attribute
   if (!nama || !nrp || !email || !password || !nohp || !departemen) {
-    return res.status(400).send({
+    return res.status(400).json({
       code: '400',
       status: 'Bad Request',
       errors: {
@@ -25,7 +25,7 @@ const register = async (req, res) => {
 
   // Validate NRP / NIP format
   if (validateNRP(nrp)) {
-    return res.status(400).send({
+    return res.status(400).json({
       code: '400',
       status: 'Bad Request',
       errors: {
@@ -36,7 +36,7 @@ const register = async (req, res) => {
 
   // Validate Email format
   if (validateEmail(email)) {
-    return res.status(400).send({
+    return res.status(400).json({
       code: '400',
       status: 'Bad Request',
       errors: {
@@ -47,7 +47,7 @@ const register = async (req, res) => {
 
   // Validate Password
   if (validatePassword(password)) {
-    return res.status(400).send({
+    return res.status(400).json({
       code: '400',
       status: 'Bad Request',
       errors: {
@@ -60,7 +60,7 @@ const register = async (req, res) => {
   // Validate NRP Exists
   const verifNRP = await knex('users').where('nrp', nrp);
   if (verifNRP.length !== 0) {
-    return res.status(409).send({
+    return res.status(409).json({
       code: '409',
       status: 'Conflict',
       errors: {
@@ -93,7 +93,7 @@ const register = async (req, res) => {
       if (err) throw err;
       user.password = hash;
       // Store user to DB
-      knex('users').insert(user).then(res.status(200).send({
+      knex('users').insert(user).then(res.status(200).json({
         code: '200',
         status: 'OK',
         data: {
@@ -112,7 +112,7 @@ const login = async (req, res) => {
   // Validate NRP
   const validUser = await knex('users').where('nrp', nrp);
   if (validUser.length === 0) {
-    return res.status(401).send({
+    return res.status(401).json({
       code: '401',
       status: 'Unauthorized',
       errors: {
@@ -147,7 +147,7 @@ const login = async (req, res) => {
               expires_at: new Date(decoded.exp * 1000).toISOString()
                   .slice(0, 19).replace('T', ' '),
             };
-            knex('tokens').insert(data).then(res.status(200).send({
+            knex('tokens').insert(data).then(res.status(200).json({
               code: '200',
               status: 'OK',
               data: {
@@ -157,7 +157,7 @@ const login = async (req, res) => {
             }));
           });
     } else {
-      return res.status(401).send({
+      return res.status(401).json({
         code: '401',
         status: 'Unauthorized',
         errors: {
@@ -182,7 +182,7 @@ const token = async (req, res) => {
   const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET,
       {expiresIn: '2hr'});
 
-  return res.status(200).send({
+  return res.status(200).json({
     code: '200',
     status: 'OK',
     data: {
@@ -200,7 +200,7 @@ const logout = async (req, res) => {
         .del();
 
     if (result == 1) {
-      return res.status(200).send({
+      return res.status(200).json({
         code: '200',
         status: 'OK',
         data: {
@@ -210,7 +210,7 @@ const logout = async (req, res) => {
     }
   } catch (error) {
     console.error(error);
-    return res.status(500).send({
+    return res.status(500).json({
       code: '500',
       status: 'Internal Server Error',
       errors: {
@@ -224,21 +224,32 @@ const logout = async (req, res) => {
 const profile = async (req, res) => {
   const {nrp} = req;
 
-  const result = await knex('users').where('nrp', nrp);
+  try {
+    const result = await knex('users').where('nrp', nrp);
 
-  if (result.length == 1) {
-    const user = result[0];
+    if (result.length == 1) {
+      const user = result[0];
 
-    return res.status(200).send({
-      code: '200',
-      status: 'OK',
-      data: {
-        user_id: user.user_id,
-        name: user.name,
-        nrp: user.nrp,
-        departemen: user.departemen,
-        nohp: user.nohp,
-        email: user.email,
+      return res.status(200).json({
+        code: '200',
+        status: 'OK',
+        data: {
+          user_id: user.user_id,
+          name: user.name,
+          nrp: user.nrp,
+          departemen: user.departemen,
+          nohp: user.nohp,
+          email: user.email,
+        },
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      code: '500',
+      status: 'Internal Server Error',
+      errors: {
+        message: 'An error occurred while fetching data',
       },
     });
   }
@@ -252,7 +263,7 @@ const assistantProfile = async (req, res) => {
       .where('mahasiswa_id', userId).first();
 
   if (!studentChoice) {
-    return res.status(404).send({
+    return res.status(404).json({
       code: '404',
       status: 'Not Found',
       message: 'Praktikan belum mempunyai kelompok.',
@@ -267,7 +278,7 @@ const assistantProfile = async (req, res) => {
       .where('kelompok_id', studentGroupId).first();
 
   if (!group) {
-    return res.status(404).send({
+    return res.status(404).json({
       code: '404',
       status: 'Not Found',
       message: 'Group not found',
@@ -281,14 +292,14 @@ const assistantProfile = async (req, res) => {
       .where('user_id', assistantUserId).first();
 
   if (!assistant) {
-    return res.status(404).send({
+    return res.status(404).json({
       code: '404',
       status: 'Not Found',
       message: 'Assistant not found',
     });
   }
 
-  return res.status(200).send({
+  return res.status(200).json({
     code: '200',
     status: 'OK',
     data: {

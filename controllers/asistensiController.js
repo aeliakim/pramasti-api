@@ -1,7 +1,9 @@
 /* eslint-disable camelcase */
 const {knex} = require('../configs/data-source.js');
 
+// melihat jadwal asistensi
 const getJadwalAsistensi = async (req, res) => {
+  const praktikum_id = req.params.praktikumId;
   try {
     const asistensi = await knex('asistenJadwal')
         .join('asisten', 'asistenJadwal.asisten_id', 'asisten.asisten_id')
@@ -11,6 +13,7 @@ const getJadwalAsistensi = async (req, res) => {
         .join('praktikum', 'jadwalPraktikum.praktikum_id',
             'praktikum.praktikum_id')
         .join('kelompok', 'jadwalPraktikum.jadwal_id', 'kelompok.jadwal_id')
+        .where('praktikum_id', praktikum_id)
         .select('praktikum.praktikum_name',
             'jadwalPraktikum.judul_modul',
             'jadwalPraktikum.waktu_mulai as sesi',
@@ -35,16 +38,16 @@ const getJadwalAsistensi = async (req, res) => {
   }
 };
 
+// memilih jadwal asistensi
 const addAsistensi = async (req, res) => {
-  // ID jadwal dari request body atau query params
   const {jadwalId} = req.body;
-  // ID asisten dari sesi pengguna atau token JWT
   const asistenId = req.user.user_id;
+  const praktikum_id = req.params.praktikumId;
 
   try {
     // Pastikan jadwal belum diambil oleh asisten lain
     const isTaken = await knex('asistenJadwal')
-        .where({jadwal_id: jadwalId})
+        .where({jadwal_id: jadwalId, praktikum_id: praktikum_id})
         .first();
 
     if (isTaken) {
@@ -59,6 +62,7 @@ const addAsistensi = async (req, res) => {
     await knex('asistenJadwal').insert({
       asisten_id: asistenId,
       jadwal_id: jadwalId,
+      praktikum_id: praktikum_id,
     });
 
     return res.status(201).json({
@@ -78,17 +82,19 @@ const addAsistensi = async (req, res) => {
   }
 };
 
+// hapus jadwal asistensi
 const deleteAsistensi = async (req, res) => {
-  // ID jadwal dari request body atau query params
   const {jadwalId} = req.body;
-  // ID asisten dari sesi pengguna atau token JWT
   const asistenId = req.user.user_id;
+  const praktikum_id = req.params.praktikumId;
+
   try {
     // Lakukan pemeriksaan apakah entri ada di database
     const entry = await knex('asistenJadwal')
         .where({
           'asisten_id': asistenId,
           'jadwal_id': jadwalId,
+          'praktikum_id': praktikum_id,
         })
         .first();
 
@@ -105,6 +111,7 @@ const deleteAsistensi = async (req, res) => {
         .where({
           'asisten_id': asistenId,
           'jadwal_id': jadwalId,
+          'praktikum_id': praktikum_id,
         })
         .del();
 
@@ -119,7 +126,7 @@ const deleteAsistensi = async (req, res) => {
       code: '500',
       status: 'Internal Server Error',
       errors: {
-        message: 'An error occurred while adding data',
+        message: 'An error occurred while deleting data',
       },
     });
   }

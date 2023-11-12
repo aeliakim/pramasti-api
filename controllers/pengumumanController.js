@@ -73,7 +73,7 @@ const addPengumuman = async (req, res) => {
 };
 
 const editPengumuman = async (req, res) => {
-  const {pengumumanId} = req.params;
+  const {pengumumanId} = req.params.pengumumanId;
   const {judul, isi_pengumuman} = req.body;
 
   try {
@@ -136,9 +136,10 @@ const editPengumuman = async (req, res) => {
 };
 
 const deletePengumuman = async (req, res) => {
+  const {pengumumanId} = req.params.pengumumanId;
   try {
     const result = await knex('pengumuman')
-        .where('pengumuman_id', req.params.pengumumanId)
+        .where('pengumuman_id', pengumumanId)
         .del();
     if (result == 1) {
       return res.status(200).json({

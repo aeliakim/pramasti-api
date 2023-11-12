@@ -45,7 +45,7 @@ Table kelompok {
 }
 
 Table mhsPilihPraktikum {
-  mahasiswa_id int
+  user_id int
   praktikum_id int
   jadwal_id int
   kelompok_id int
@@ -59,7 +59,7 @@ Table asisten {
 
 Table nilai {
   nilai_id int [primary key]
-  mahasiswa_id int
+  user_id int
   praktikum_id int
   nilai decimal(5,2)
 }
@@ -79,13 +79,15 @@ Table roles {
   role_id int
   role_name varchar(100)
   user_id int
+  praktikum_id int
 }
 
+Ref: "roles"."praktikum_id > "praktikum"."praktikum_id" // many-to-one
 Ref: "asisten"."asisten_id" - "users"."user_id" // one-to-one
 Ref: "praktikum"."praktikum_id" < "jadwalPraktikum"."praktikum_id" // one-to-many
 Ref: "praktikum"."praktikum_id" < "asisten"."praktikum_id" // one-to-many
-Ref: "users"."user_id" < "nilai"."mahasiswa_id" // one-to-many
-Ref: "users"."user_id" < "mhsPilihPraktikum"."mahasiswa_id" // one-to-many
+Ref: "users"."user_id" < "nilai"."user_id" // one-to-many
+Ref: "users"."user_id" < "mhsPilihPraktikum"."user_id" // one-to-many
 Ref: "praktikum"."praktikum_id" < "mhsPilihPraktikum"."praktikum_id" // one-to-many
 Ref: "jadwalPraktikum"."jadwal_id" <> "mhsPilihPraktikum"."jadwal_id" // many-to-many
 Ref: "asisten"."asisten_id" < "asistenJadwal"."asisten_id" // one-to-many

@@ -9,14 +9,17 @@ const {
   addPengumuman,
   editPengumuman,
   deletePengumuman,
-} = require('../controllers/praktikumController');
-/* const {
+} = require('../controllers/pengumumanController');
+const {
   authorize,
-  authenticateAccessToken} = require('../middleware/authenticate'); */
+  authenticateAccessToken} = require('../middleware/authenticate');
 
-router.get('/pengumuman', getAllPengumuman);
-router.post('/pengumuman/add', addPengumuman);
-router.put('/pengumuman/edit', editPengumuman);
-router.delete('/pengumuman/delete/:pengumumanId', deletePengumuman);
+router.get('/', getAllPengumuman);
+router.post('/new-pengumuman', authenticateAccessToken,
+    authorize(['koordinator', 'dosen', 'admin']), addPengumuman);
+router.put('/:pengumumanId', authenticateAccessToken,
+    authorize(['koordinator', 'dosen', 'admin']), editPengumuman);
+router.delete('/:pengumumanId', authenticateAccessToken,
+    authorize(['koordinator', 'dosen', 'admin']), deletePengumuman);
 
 module.exports = router;

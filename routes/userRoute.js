@@ -12,11 +12,23 @@ const {
   authenticateRefreshToken,
   authenticateAccessToken} = require('../middleware/authenticate');
 
+// daftar akun (register)
 router.post('/signup', register);
+
+// login
 router.post('/signin', login);
+
+// khusus token
 router.post('/token', authenticateRefreshToken, token);
-router.post('/signout', authenticateRefreshToken, logout);
+
+// signout
+router.post('/profile/signout', authenticateRefreshToken, logout);
+
+// melihat profile sendiri
 router.get('/profile', authenticateAccessToken, profile);
-router.get('/profile-asisten/:userId', assistantProfile);
+
+// melihat profil asisten
+router.get('/profile-asisten/:userId', authenticateAccessToken,
+    authorize(['praktikan']), assistantProfile);
 
 module.exports = router;

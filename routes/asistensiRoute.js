@@ -8,13 +8,23 @@ const {
   addAsistensi,
   deleteAsistensi,
 } = require('../controllers/asistensiController');
-/* const {
+const {
   authorize,
-  authenticateAccessToken} = require('../middleware/authenticate'); */
+  authenticateAccessToken} = require('../middleware/authenticate');
 
-router.get('/asistensi', getJadwalAsistensi);
-router.post('/asistensi/take', addAsistensi);
-router.delete('/asistensi/cancel/:jadwalId', deleteAsistensi);
+// melihat jadwal asistensi
+router.get('/:praktikumId/asistensi', authenticateAccessToken,
+    authorize(['asisten', 'koordinator', 'dosen', 'admin']),
+    getJadwalAsistensi);
+
+// memilih jadwal asistensi
+router.post('/:praktikumId/asistensi', authenticateAccessToken,
+    authorize(['asisten', 'koordinator', 'dosen', 'admin']), addAsistensi);
+
+// menghapus jadwal asistensi
+router.delete('/:praktikumId/asistensi/:jadwalId',
+    authenticateAccessToken,
+    authorize(['asisten', 'koordinator', 'dosen', 'admin']), deleteAsistensi);
 
 module.exports = router;
 
