@@ -10,7 +10,7 @@ const {
   assistantProfile} = require('../controllers/userController');
 const {
   authenticateRefreshToken,
-  authenticateAccessToken} = require('../middleware/authenticate');
+  authenticateAccessToken, authorize} = require('../middleware/authenticate');
 
 // daftar akun (register)
 router.post('/signup', register);

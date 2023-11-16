@@ -93,6 +93,5 @@ Ref: "jadwalPraktikum"."jadwal_id" <> "mhsPilihPraktikum"."jadwal_id" // many-to
 Ref: "asisten"."asisten_id" < "asistenJadwal"."asisten_id" // one-to-many
 Ref: "jadwalPraktikum"."jadwal_id" < "asistenJadwal"."jadwal_id" // one-to-many
 Ref: "users"."user_id" < "roles"."user_id" // one-to-many
-Ref: "users"."user_id" < "pengumuman"."oleh_id" // one-to-many
 Ref: "jadwalPraktikum"."jadwal_id" < "kelompok"."jadwal_id" // one-to-many
 Ref: "kelompok"."kelompok_id" < "mhsPilihPraktikum"."kelompok_id" // one-to-many

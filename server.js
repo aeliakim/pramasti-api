@@ -1,11 +1,22 @@
 const express = require('express');
+require('dotenv').config();
 const asistensiRoute = require('./routes/asistensiRoute.js');
 const nilaiRoute = require('./routes/nilaiRoute.js');
 const pengumumanRoute = require('./routes/pengumumanRoute.js');
 const praktikumRoute = require('./routes/praktikumRoute.js');
 const roleRoute = require('./routes/roleRoute.js');
 const userRoute = require('./routes/userRoute.js');
-// const {knex} = require('./configs/data-source.js');
+const {knex} = require('./configs/data-source.js');
+
+// Test the connection
+knex.raw('SELECT 1+1 AS result')
+    .then((results) => {
+      console.log('Connection to database successful.');
+    })
+    .catch((error) => {
+      console.error('Error connecting to the database:', error);
+    });
+
 const web = express();
 const port = 8080;
 

@@ -315,11 +315,10 @@ const assistantProfile = async (req, res) => {
 };
 
 // upload gambar
-const uploadProfilePicture = async (req, res) => {
+/* const uploadProfilePicture = async (req, res) => {
 
-};
+}; */
 
 module.exports = {
   login, register, token, logout, profile, assistantProfile,
-  uploadProfilePicture,
 };
