@@ -29,6 +29,6 @@ router.get('/profile', authenticateAccessToken, profile);
 
 // melihat profil asisten
 router.get('/profile-asisten/:userId', authenticateAccessToken,
-    authorize(['praktikan']), assistantProfile);
+    authorize(['praktikan', 'admin']), assistantProfile);
 
 module.exports = router;

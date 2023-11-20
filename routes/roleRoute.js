@@ -21,7 +21,7 @@ router.post('/:praktikumId/asisten', authenticateAccessToken,
     authorize(['koordinator', 'dosen', 'admin']), addAsisten);
 
 // menghapus asisten
-router.delete('/:praktikumId/:nrp', authenticateAccessToken,
+router.delete('/:praktikumId/asisten/:nrp', authenticateAccessToken,
     authorize(['koordinator', 'dosen', 'admin']), deleteAsisten);
 
 // menambah koordinator
@@ -29,7 +29,7 @@ router.post('/:praktikumId/koor', authenticateAccessToken,
     authorize(['dosen', 'admin']), addKoor);
 
 // menghapus koordinator
-router.delete('/:praktikumId/:nrp', authenticateAccessToken,
+router.delete('/:praktikumId/koor/:nrp', authenticateAccessToken,
     authorize(['dosen', 'admin']), deleteKoor);
 
 // menambah dosen
@@ -37,7 +37,7 @@ router.post('/:praktikumId/dosen', authenticateAccessToken,
     authorize(['admin']), addDosen);
 
 // menghapus dosen
-router.delete('/:praktikumId/:nrp', authenticateAccessToken,
+router.delete('/:praktikumId/dosen/:nrp', authenticateAccessToken,
     authorize(['admin']), deleteDosen);
 
 module.exports = router;

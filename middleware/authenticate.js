@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
-// const {knex} = require('../configs/data-source.js');
+const {knex} = require('../configs/data-source.js');
+require('dotenv').config();
 
 const authenticateAccessToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -45,11 +46,13 @@ const authenticateAccessToken = (req, res, next) => {
       });
     }
 
-    req.nrp = decoded.nrp;
-    req.name = decoded.name;
-    req.user_id = decoded.user_id;
-    req.created_at = decoded.created_at;
-    req.role = decoded.role;
+    req.user = {
+      nrp: decoded.nrp,
+      name: decoded.name,
+      user_id: decoded.user_id,
+      role: decoded.role,
+      created_at: decoded.created_at,
+    };
     next();
   });
 };
@@ -168,7 +171,7 @@ const optionalAuthenticateAccessToken = (req, res, next) => {
   }
 };
 
-const authorize = (role) => {
+const authorize = (allowedRoles) => {
   return (req, res, next) => {
     if (req.user && allowedRoles.includes(req.user.role)) {
       next();

@@ -19,7 +19,7 @@ router.get('/:praktikumId/asistensi', authenticateAccessToken,
 
 // memilih jadwal asistensi
 router.post('/:praktikumId/asistensi', authenticateAccessToken,
-    authorize(['asisten', 'koordinator', 'dosen', 'admin']), addAsistensi);
+    authorize(['asisten', 'koordinator']), addAsistensi);
 
 // menghapus jadwal asistensi
 router.delete('/:praktikumId/asistensi/:jadwalId',

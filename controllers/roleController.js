@@ -6,7 +6,7 @@ const {knex} = require('../configs/data-source.js');
 
 // menampilkan manajemen role
 const getRoleLists = async (req, res) => {
-  const {praktikumId} = req.params.praktikumId;
+  const praktikumId = req.params.praktikumId;
   try {
     const role = req.user.role;
     let data;
@@ -72,7 +72,7 @@ const getRoleLists = async (req, res) => {
 
 // menambah asisten
 const addAsisten = async (req, res) => {
-  const {praktikumId} = req.params.praktikumId;
+  const praktikumId = req.params.praktikumId;
   const {nrpList} = req.body;
   try {
     // Pengecekan setiap NRP dan tambahkan sebagai asisten jika belum ada
@@ -117,8 +117,8 @@ const addAsisten = async (req, res) => {
 
 // menghapus asisten
 const deleteAsisten = async (req, res) => {
-  const {praktikumId} = req.params.praktikumId;
-  const {nrp} = req.params.nrp;
+  const praktikumId = req.params.praktikumId;
+  const nrp = req.params.nrp;
 
   try {
     const user = await knex('users').where('nrp', nrp).first();
@@ -173,7 +173,7 @@ const deleteAsisten = async (req, res) => {
 
 // menambah koordinator
 const addKoor = async (req, res) => {
-  const {praktikumId} = req.params.praktikumId;
+  const praktikumId = req.params.praktikumId;
   const {nrpList} = req.body;
   try {
     // Pengecekan setiap NRP dan tambahkan sebagai koordinator jika belum ada
@@ -219,8 +219,8 @@ const addKoor = async (req, res) => {
 
 // menghapus koordinator
 const deleteKoor = async (req, res) => {
-  const {praktikumId} = req.params.praktikumId;
-  const {nrp} = req.params;
+  const praktikumId = req.params.praktikumId;
+  const nrp = req.params.nrp;
 
   try {
     const user = await knex('users').where('nrp', nrp).first();
@@ -275,7 +275,7 @@ const deleteKoor = async (req, res) => {
 
 // menambah dosen
 const addDosen = async (req, res) => {
-  const {praktikumId} = req.params.praktikumId;
+  const praktikumId = req.params.praktikumId;
   const {nrpList} = req.body;
   try {
     // Pengecekan setiap NIP dan tambahkan sebagai asisten jika belum ada
@@ -321,8 +321,8 @@ const addDosen = async (req, res) => {
 
 // menghapus dosen
 const deleteDosen = async (req, res) => {
-  const {praktikumId} = req.params.praktikumId;
-  const {nrp} = req.params.nrp;
+  const praktikumId = req.params.praktikumId;
+  const nrp = req.params.nrp;
 
   try {
     const user = await knex('users').where('nrp', nrp).first();

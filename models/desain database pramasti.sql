@@ -40,22 +40,19 @@ CREATE TABLE jadwalPraktikum (
 
 CREATE TABLE kelompok (
   kelompok_id INT AUTO_INCREMENT PRIMARY KEY,
-  jadwal_id INT NOT NULL,
-  kapasitas INT NOT NULL, -- jumlah maksimal anggota kelompok
-  nama_kelompok VARCHAR(255) NOT NULL,
-  FOREIGN KEY (jadwal_id) REFERENCES jadwalPraktikum(jadwal_id) ON DELETE CASCADE
+  kapasitas INT NOT NULL -- jumlah maksimal anggota kelompok
 );
 
 CREATE TABLE mhsPilihPraktikum (
   user_id INT NOT NULL,
   praktikum_id INT NOT NULL,
   jadwal_id INT NOT NULL,
-  kelompok_id INT NOT NULL,
-  PRIMARY KEY (user_id, praktikum_id, jadwal_id, kelompok_id),
+  kelompok_id INT DEFAULT NULL,
+  PRIMARY KEY (user_id, praktikum_id, jadwal_id),
   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
   FOREIGN KEY (praktikum_id) REFERENCES praktikum(praktikum_id) ON DELETE CASCADE,
   FOREIGN KEY (jadwal_id) REFERENCES jadwalPraktikum(jadwal_id) ON DELETE CASCADE,
-  FOREIGN KEY (kelompok_id) REFERENCES kelompok(kelompok_id) ON DELETE CASCADE
+  FOREIGN KEY (kelompok_id) REFERENCES kelompok(kelompok_id) ON DELETE SET NULL
 );
 
 CREATE TABLE asisten (
@@ -95,4 +92,14 @@ CREATE TABLE roles (
   praktikum_id INT NOT NULL,
   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
   FOREIGN KEY (praktikum_id) REFERENCES praktikum(praktikum_id) ON DELETE CASCADE
+);
+
+CREATE Table tokens (
+  id_token int AUTO_INCREMENT NOT NULL,
+  user_id int(11) NOT NULL,
+  token text NOT NULL,
+  expires_at timestamp NOT NULL,
+  created_at timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  PRIMARY KEY (id_token),
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );

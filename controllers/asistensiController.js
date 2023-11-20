@@ -5,21 +5,19 @@ const {knex} = require('../configs/data-source.js');
 const getJadwalAsistensi = async (req, res) => {
   const praktikum_id = req.params.praktikumId;
   try {
-    const asistensi = await knex('asistenJadwal')
-        .join('asisten', 'asistenJadwal.asisten_id', 'asisten.asisten_id')
-        .join('users', 'asisten.user_id', 'users.user_id')
-        .join('jadwalPraktikum', 'asistenJadwal.jadwal_id',
-            'jadwalPraktikum.jadwal_id')
-        .join('praktikum', 'jadwalPraktikum.praktikum_id',
-            'praktikum.praktikum_id')
-        .join('kelompok', 'jadwalPraktikum.jadwal_id', 'kelompok.jadwal_id')
-        .where('praktikum_id', praktikum_id)
-        .select('praktikum.praktikum_name',
-            'jadwalPraktikum.judul_modul',
-            'jadwalPraktikum.waktu_mulai as sesi',
-            'jadwalPraktikum.tanggal',
-            'users.nama as nama_asisten',
-            'kelompok.nama_kelompok');
+    const asistensi = await knex('jadwalPraktikum as jp')
+        .join('praktikum as p', 'jp.praktikum_id', 'p.praktikum_id')
+        .leftJoin('asistenJadwal as aj', 'jp.jadwal_id', 'aj.jadwal_id')
+        .leftJoin('asisten as a', 'aj.asisten_id', 'a.asisten_id')
+        .leftJoin('users as u', 'a.user_id', 'u.user_id')
+        .select(
+            'p.praktikum_name',
+            'jp.judul_modul',
+            'jp.tanggal',
+            'jp.waktu_mulai as sesi',
+            'u.nama as nama_asisten',
+        )
+        .where('p.praktikum_id', praktikum_id);
 
     return res.status(200).json({
       code: '200',
@@ -45,6 +43,18 @@ const addAsistensi = async (req, res) => {
   const praktikum_id = req.params.praktikumId;
 
   try {
+    const jadwalExists = await knex('jadwalPraktikum')
+        .where({jadwal_id: jadwalId, praktikum_id: praktikum_id})
+        .first();
+
+    if (!jadwalExists) {
+      return res.status(404).json({
+        code: '404',
+        status: 'Not Found',
+        message: 'Jadwal atau praktikum tidak ditemukan.',
+      });
+    }
+
     // Pastikan jadwal belum diambil oleh asisten lain
     const isTaken = await knex('asistenJadwal')
         .where({jadwal_id: jadwalId, praktikum_id: praktikum_id})
@@ -62,7 +72,6 @@ const addAsistensi = async (req, res) => {
     await knex('asistenJadwal').insert({
       asisten_id: asistenId,
       jadwal_id: jadwalId,
-      praktikum_id: praktikum_id,
     });
 
     return res.status(201).json({

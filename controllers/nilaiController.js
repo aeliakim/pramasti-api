@@ -6,16 +6,16 @@ const {knex} = require('../configs/data-source.js');
 
 // menampilkan daftar peserta
 const getPeserta = async (req, res) => {
-  const {praktikumId} = req.params.praktikumId;
+  const praktikumId = req.params.praktikumId;
   try {
     const peserta = await knex('mhsPilihPraktikum as mp')
-        .join('users as u', 'u.user_id', 'mp.user_id')
-        .join('praktikum as p', 'p.praktikum_id', 'mp.praktikum_id')
+        .leftJoin('users as u', 'u.user_id', 'mp.user_id')
+        .leftJoin('praktikum as p', 'p.praktikum_id', 'mp.praktikum_id')
         .leftJoin('nilai as n', function() {
           this.on('mp.user_id', '=', 'n.user_id')
               .andOn('mp.praktikum_id', '=', 'n.praktikum_id');
         })
-        .where('praktikum.praktikum_id', praktikumId)
+        .where({'p.praktikum_id': praktikumId})
         .select(
             'u.user_id',
             'u.nama',
@@ -52,7 +52,7 @@ const getPeserta = async (req, res) => {
 
 // menambahkan nilai
 const addNilai = async (req, res) => {
-  const {praktikum_id} = req.params.praktikumId;
+  const praktikum_id = req.params.praktikumId;
   const {user_id, nilai} = req.body;
   try {
     // Validasi input
@@ -81,8 +81,9 @@ const addNilai = async (req, res) => {
     });
 
     return res.status(201).json({
+      code: '200',
       message: 'Nilai berhasil ditambahkan.',
-      nilai: insertedNilai,
+      data: insertedNilai,
     });
   } catch (error) {
     console.error(error);
@@ -98,7 +99,7 @@ const addNilai = async (req, res) => {
 
 // mengedit nilai
 const editNilai = async (req, res) => {
-  const {nilai_id} = req.params.nilai_id;
+  const nilai_id = req.params.nilaiId;
   const {nilai} = req.body;
 
   try {

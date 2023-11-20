@@ -128,6 +128,7 @@ const login = async (req, res) => {
         nrp: validUser[0].nrp,
         name: validUser[0].name,
         user_id: validUser[0].user_id,
+        role: validUser[0].role,
         created_at: validUser[0].created_at,
       };
 

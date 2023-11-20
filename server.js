@@ -20,6 +20,9 @@ knex.raw('SELECT 1+1 AS result')
 const web = express();
 const port = 8080;
 
+// eslint-disable-next-line new-cap
+const v1Router = express.Router();
+
 web.use(express.json());
 web.use(express.urlencoded({extended: true}));
 
@@ -30,12 +33,14 @@ web.get('/', (req, res) => {
     message: 'Welcome to the Pramasti API'});
 });
 
-web.use('/asistensi', asistensiRoute);
-web.use('/nilai', nilaiRoute);
-web.use('/pengumuman', pengumumanRoute);
-web.use('/praktikum', praktikumRoute);
-web.use('/role', roleRoute);
-web.use('/user', userRoute);
+v1Router.use('/asistensi', asistensiRoute);
+v1Router.use('/nilai', nilaiRoute);
+v1Router.use('/pengumuman', pengumumanRoute);
+v1Router.use('/praktikum', praktikumRoute);
+v1Router.use('/role', roleRoute);
+v1Router.use('/user', userRoute);
+
+web.use('/v1', v1Router);
 
 web.use(function(req, res, next) {
   res.status(404).send({

@@ -19,7 +19,7 @@ router.post('/:praktikumId/peserta', authenticateAccessToken,
     authorize(['asisten', 'koordinator', 'dosen', 'admin']), addNilai);
 
 // mengedit nilai
-router.put('/:praktikumId/peserta/:nilai_id', authenticateAccessToken,
+router.put('/:praktikumId/peserta/:nilaiId', authenticateAccessToken,
     authorize(['asisten', 'koordinator', 'dosen', 'admin']), editNilai);
 
 module.exports = router;
