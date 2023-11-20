@@ -8,16 +8,18 @@ const getJadwalAsistensi = async (req, res) => {
     const asistensi = await knex('jadwalPraktikum as jp')
         .join('praktikum as p', 'jp.praktikum_id', 'p.praktikum_id')
         .leftJoin('asistenJadwal as aj', 'jp.jadwal_id', 'aj.jadwal_id')
-        .leftJoin('asisten as a', 'aj.asisten_id', 'a.asisten_id')
-        .leftJoin('users as u', 'a.user_id', 'u.user_id')
+        .leftJoin('users as u', 'aj.user_id', 'u.user_id')
+        .leftJoin('kelompok as k', 'jp.jadwal_id', 'k.jadwal_id')
         .select(
             'p.praktikum_name',
             'jp.judul_modul',
             'jp.tanggal',
             'jp.waktu_mulai as sesi',
             'u.nama as nama_asisten',
+            'k.nama_kelompok',
         )
-        .where('p.praktikum_id', praktikum_id);
+        .where('p.praktikum_id', praktikum_id)
+        .orderBy(['jp.tanggal', 'jp.waktu_mulai']);
 
     return res.status(200).json({
       code: '200',
@@ -70,8 +72,9 @@ const addAsistensi = async (req, res) => {
 
     // Tambahkan asisten ke jadwal tersebut
     await knex('asistenJadwal').insert({
-      asisten_id: asistenId,
+      user_id: asistenId,
       jadwal_id: jadwalId,
+      praktikum_id: praktikum_id,
     });
 
     return res.status(201).json({
@@ -93,17 +96,32 @@ const addAsistensi = async (req, res) => {
 
 // hapus jadwal asistensi
 const deleteAsistensi = async (req, res) => {
-  const {jadwalId} = req.body;
-  const asistenId = req.user.user_id;
-  const praktikum_id = req.params.praktikumId;
+  const jadwalId = req.params.jadwalId;
+  const asistenId = req.params.userId;
+  const praktikumId = req.params.praktikumId;
+  const userId = req.user.user_id; // id pengguna yang saat ini login
+  const userRoles = req.user.roles; // peran pengguna yang saat ini login
 
   try {
+    const hasPermission = userRoles.includes('admin') ||
+    userRoles.includes('dosen') ||
+    (userRoles.includes('koordinator') && asistenId !== userId) ||
+    (userRoles.includes('asisten') && asistenId === userId);
+
+    if (!hasPermission) {
+      return res.status(403).json({
+        code: '403',
+        status: 'Forbidden',
+        message: 'Anda tidak memiliki izin untuk melakukan tindakan ini.',
+      });
+    }
+
     // Lakukan pemeriksaan apakah entri ada di database
     const entry = await knex('asistenJadwal')
         .where({
-          'asisten_id': asistenId,
+          'user_id': asistenId,
           'jadwal_id': jadwalId,
-          'praktikum_id': praktikum_id,
+          'praktikum_id': praktikumId,
         })
         .first();
 
@@ -118,9 +136,9 @@ const deleteAsistensi = async (req, res) => {
     // Hapus entri dari database
     await knex('asistenJadwal')
         .where({
-          'asisten_id': asistenId,
+          'user_id': asistenId,
           'jadwal_id': jadwalId,
-          'praktikum_id': praktikum_id,
+          'praktikum_id': praktikumId,
         })
         .del();
 

@@ -22,7 +22,7 @@ router.post('/:praktikumId/asistensi', authenticateAccessToken,
     authorize(['asisten', 'koordinator']), addAsistensi);
 
 // menghapus jadwal asistensi
-router.delete('/:praktikumId/asistensi/:jadwalId',
+router.delete('/:praktikumId/asistensi/:jadwalId/:userId',
     authenticateAccessToken,
     authorize(['asisten', 'koordinator', 'dosen', 'admin']), deleteAsistensi);
 

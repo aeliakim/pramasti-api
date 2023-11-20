@@ -15,7 +15,7 @@ const {
   authenticateAccessToken} = require('../middleware/authenticate');
 
 router.get('/', getAllPengumuman);
-router.post('/new-pengumuman', authenticateAccessToken,
+router.post('/add', authenticateAccessToken,
     authorize(['koordinator', 'dosen', 'admin']), addPengumuman);
 router.put('/:pengumumanId', authenticateAccessToken,
     authorize(['koordinator', 'dosen', 'admin']), editPengumuman);

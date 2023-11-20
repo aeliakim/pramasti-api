@@ -4,10 +4,10 @@ const {knex} = require('../configs/data-source.js');
 // melihat daftar praktikum yang tersedia
 const getAllPraktikum = async (req, res) => {
   try {
-    const role = req.user.role;
+    const role = req.user.roles;
     let praktikums;
 
-    if (role == 'praktikan') {
+    if (role === 'praktikan') {
       praktikums = await knex('praktikum')
           .leftJoin('nilai', 'praktikum.praktikum_id', 'nilai.praktikum_id')
           .select('praktikum.praktikum_name',
@@ -46,8 +46,9 @@ const getAllJadwal = async (req, res) => {
         .leftJoin('mhsPilihPraktikum', 'jadwalPraktikum.jadwal_id',
             'mhsPilihPraktikum.jadwal_id')
         .leftJoin('kelompok', 'jadwalPraktikum.jadwal_id', 'kelompok.jadwal_id')
-        .leftJoin('users', 'kelompok.kelompok_id',
-            'mhsPilihPraktikum.kelompok_id')
+        .leftJoin('asistenJadwal', 'jadwalPraktikum.jadwal_id',
+            'asistenJadwal.jadwal_id')
+        .leftJoin('users', 'asistenJadwal.user_id', 'users.user_id')
         .leftJoin('praktikum', 'jadwalPraktikum.praktikum_id',
             'praktikum.praktikum_id')
         .where('mhsPilihPraktikum.user_id', userId)
@@ -428,12 +429,28 @@ const ambilJadwal = async (req, res) => {
 
     // Jika tidak ada kelompok yang tersedia, buat kelompok baru
     if (!kelompok) {
+      // Mencari nama kelompok terakhir untuk praktikum dan jadwal yang sama
+      const lastKelompokName = await knex('kelompok')
+          .where({jadwal_id})
+          .max('nama_kelompok as lastGroupName')
+          .first();
+
+      // Menentukan nama kelompok baru berdasarkan kelompok terakhir
+      const kelompokNumber = lastKelompokName.
+          lastGroupName ? parseInt(lastKelompokName
+              .lastGroupName.split(' ')[1]) + 1 : 1;
+      const newGroupName = `Kelompok ${kelompokNumber}`;
+
+      // Menambahkan kelompok baru dengan nama yang telah ditentukan
       const insertedIds = await knex('kelompok').insert({
         kapasitas: 5,
         jadwal_id,
+        nama_kelompok: newGroupName,
       });
+
       const newKelompokId = insertedIds[0];
-      kelompok = {kelompok_id: newKelompokId, kapasitas: 5};
+      kelompok = {kelompok_id: newKelompokId,
+        kapasitas: 5, nama_kelompok: newGroupName};
     }
 
     // Mengambil jadwal
@@ -460,6 +477,7 @@ const ambilJadwal = async (req, res) => {
         waktu_mulai,
         kuota: kuota - 1, // Menampilkan kuota yang telah diperbarui
         kelompok_id: kelompok.kelompok_id,
+        nama_kelompok: kelompok.nama_kelompok,
       },
     });
   } catch (error) {
@@ -512,6 +530,7 @@ const lihatKelompok = async (req, res) => {
             'k.kelompok_id',
             'u.nama',
             'u.nrp',
+            'k.nama_kelompok',
         )
         .orderBy('k.kelompok_id');
 
@@ -526,7 +545,7 @@ const lihatKelompok = async (req, res) => {
       code: '500',
       status: 'Internal Server Error',
       errors: {
-        message: 'An error occurred while adding data',
+        message: 'An error occurred while fetching data',
       },
     });
   }

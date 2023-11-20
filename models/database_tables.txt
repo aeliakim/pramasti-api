@@ -1,6 +1,6 @@
 Table users {
   user_id int [primary key, increment]
-  nrp int
+  nrp varchar(30)
   nama varchar(255)
   password varchar(255)
   email varchar(255)

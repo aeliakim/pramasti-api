@@ -1,12 +1,11 @@
 CREATE TABLE users (
   user_id INT AUTO_INCREMENT PRIMARY KEY,
-  nrp INT NOT NULL UNIQUE,
+  nrp VARCHAR(30) NOT NULL UNIQUE,
   nama VARCHAR(255) NOT NULL,
   password VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
   nohp VARCHAR(20),
   departemen VARCHAR(255),
-  role ENUM('praktikan', 'asisten', 'koordinator', 'dosen', 'admin') NOT NULL,
   approved_by VARCHAR(255),
   profil_picture VARCHAR(255)
 );
@@ -40,7 +39,10 @@ CREATE TABLE jadwalPraktikum (
 
 CREATE TABLE kelompok (
   kelompok_id INT AUTO_INCREMENT PRIMARY KEY,
-  kapasitas INT NOT NULL -- jumlah maksimal anggota kelompok
+  kapasitas INT NOT NULL, -- jumlah maksimal anggota kelompok
+  nama_kelompok VARCHAR(255),
+  jadwal_id INT NOT NULL,
+  FOREIGN KEY (jadwal_id) REFERENCES jadwalPraktikum(jadwal_id) ON DELETE CASCADE,
 );
 
 CREATE TABLE mhsPilihPraktikum (
@@ -53,14 +55,6 @@ CREATE TABLE mhsPilihPraktikum (
   FOREIGN KEY (praktikum_id) REFERENCES praktikum(praktikum_id) ON DELETE CASCADE,
   FOREIGN KEY (jadwal_id) REFERENCES jadwalPraktikum(jadwal_id) ON DELETE CASCADE,
   FOREIGN KEY (kelompok_id) REFERENCES kelompok(kelompok_id) ON DELETE SET NULL
-);
-
-CREATE TABLE asisten (
-  asisten_id INT PRIMARY KEY,
-  user_id INT NOT NULL,
-  praktikum_id INT NOT NULL,
-  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-  FOREIGN KEY (praktikum_id) REFERENCES praktikum(praktikum_id) ON DELETE CASCADE
 );
 
 CREATE TABLE nilai (
@@ -79,10 +73,13 @@ CREATE TABLE pengumuman (
 );
 
 CREATE TABLE asistenJadwal (
-  asisten_id INT NOT NULL,
+  user_id INT NOT NULL,
   jadwal_id INT NOT NULL,
-  FOREIGN KEY (asisten_id) REFERENCES asisten(asisten_id) ON DELETE CASCADE,
-  FOREIGN KEY (jadwal_id) REFERENCES jadwalPraktikum(jadwal_id) ON DELETE CASCADE
+  praktikum_id INT,
+  PRIMARY KEY (jadwal_id, user_id),
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+  FOREIGN KEY (jadwal_id) REFERENCES jadwalPraktikum(jadwal_id) ON DELETE CASCADE,
+  FOREIGN KEY (praktikum_id) REFERENCES praktikum(praktikum_id) ON DELETE CASCADE;
 );
 
 CREATE TABLE roles (

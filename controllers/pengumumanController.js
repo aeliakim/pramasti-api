@@ -4,7 +4,7 @@ const {knex} = require('../configs/data-source.js');
 const getAllPengumuman = async (req, res) => {
   try {
     const pengumuman = await knex('pengumuman')
-        .select('judul', 'isi_pengumuman');
+        .select('judul', 'deskripsi');
 
     return res.status(200).json({
       code: '200',
@@ -25,13 +25,12 @@ const getAllPengumuman = async (req, res) => {
 
 const addPengumuman = async (req, res) => {
   const {
-    pengumuman_id,
     judul,
-    isi_pengumuman,
+    deskripsi,
   } = req.body;
   try {
     // validasi input
-    if (!judul || !isi_pengumuman) {
+    if (!judul || !deskripsi) {
       return res.status(400).json({
         code: '400',
         status: 'Bad Request',
@@ -44,7 +43,6 @@ const addPengumuman = async (req, res) => {
     // menyimpan ke database
     const [pengumumanId] = await knex('pengumuman')
         .insert({
-          pengumuman_id,
           judul,
           deskripsi,
         });
@@ -73,12 +71,12 @@ const addPengumuman = async (req, res) => {
 };
 
 const editPengumuman = async (req, res) => {
-  const {pengumumanId} = req.params.pengumumanId;
-  const {judul, isi_pengumuman} = req.body;
+  const pengumumanId = req.params.pengumumanId;
+  const {judul, deskripsi} = req.body;
 
   try {
     // validasi input
-    if (!judul || !isi_pengumuman) {
+    if (!judul || !deskripsi) {
       return res.status(400).json({
         code: '400',
         status: 'Bad Request',
@@ -109,7 +107,7 @@ const editPengumuman = async (req, res) => {
         .where({pengumuman_id: pengumumanId})
         .update({
           judul,
-          isi_pengumuman,
+          deskripsi,
         });
 
     /* mengambil pengumuman yang telah diperbarui
@@ -136,7 +134,7 @@ const editPengumuman = async (req, res) => {
 };
 
 const deletePengumuman = async (req, res) => {
-  const {pengumumanId} = req.params.pengumumanId;
+  const pengumumanId = req.params.pengumumanId;
   try {
     const result = await knex('pengumuman')
         .where('pengumuman_id', pengumumanId)

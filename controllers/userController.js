@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 const jwt = require('jsonwebtoken');
 const saltRounds = 10;
 const bcrypt = require('bcrypt');
@@ -84,7 +85,6 @@ const register = async (req, res) => {
     password,
     nohp,
     departemen,
-    role,
   };
 
   // Password hashing
@@ -93,13 +93,30 @@ const register = async (req, res) => {
       if (err) throw err;
       user.password = hash;
       // Store user to DB
-      knex('users').insert(user).then(res.status(200).json({
-        code: '200',
-        status: 'OK',
-        data: {
-          message: 'Register Success. Please Log in',
-        },
-      }));
+      knex('users').insert(user).then((ids) => {
+        const user_id = ids[0];
+        return knex('roles').insert({
+          role_name: role,
+          user_id: user_id,
+        });
+      }).then(() => {
+        res.status(200).json({
+          code: '200',
+          status: 'OK',
+          data: {
+            message: 'Register Success. Please Log in',
+          },
+        });
+      }).catch((error) => {
+        console.error(error);
+        res.status(500).json({
+          code: '500',
+          status: 'Internal Server Error',
+          errors: {
+            message: 'An error occurred while registering the user',
+          },
+        });
+      });
     });
   });
 };
@@ -110,7 +127,7 @@ const login = async (req, res) => {
   const password = req.body.password;
 
   // Validate NRP
-  const validUser = await knex('users').where('nrp', nrp);
+  const validUser = await knex('users').where('nrp', nrp).first();
   if (validUser.length === 0) {
     return res.status(401).json({
       code: '401',
@@ -122,14 +139,18 @@ const login = async (req, res) => {
   }
 
   // Check Password
-  bcrypt.compare(password, validUser[0].password, function(err, result) {
+  bcrypt.compare(password, validUser.password, async function(err, result) {
     if (result) {
+      // Get roles list from roles table
+      const rolesList = await knex('roles')
+          .where('user_id', validUser.user_id).pluck('role_name');
+
       const user = {
-        nrp: validUser[0].nrp,
-        name: validUser[0].name,
-        user_id: validUser[0].user_id,
-        role: validUser[0].role,
-        created_at: validUser[0].created_at,
+        nrp: validUser.nrp,
+        name: validUser.nama,
+        user_id: validUser.user_id,
+        roles: rolesList, // Array of roles
+        created_at: validUser.created_at,
       };
 
       // Make JWT
@@ -141,7 +162,7 @@ const login = async (req, res) => {
       jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET,
           function(err, decoded) {
             const data = {
-              user_id: validUser[0].user_id,
+              user_id: validUser.user_id,
               token: refreshToken,
               created_at: new Date(decoded.iat * 1000).toISOString()
                   .slice(0, 19).replace('T', ' '),
@@ -171,25 +192,60 @@ const login = async (req, res) => {
 
 // token
 const token = async (req, res) => {
-  // Retrieve user detail
-  const {nrp, name, role} = req;
-  const user = {
-    nrp,
-    name,
-    role,
-  };
+  const nrp = req.user.nrp;
+  if (!nrp) {
+    // Handle jika nrp tidak didefinisikan atau tidak valid
+    return res.status(400).json({error: 'NRP is required'});
+  }
+  try {
+    // Retrieve user with roles
+    const userWithRoles = await knex('users as u')
+        .leftJoin('roles as r', 'u.user_id', 'r.user_id')
+        .where('u.nrp', nrp)
+        .select('u.*', knex.raw('GROUP_CONCAT(r.role_name) as roles'))
+        .groupBy('u.user_id')
+        .first();
 
-  // Make JWT
-  const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET,
-      {expiresIn: '2hr'});
+    if (!userWithRoles) {
+      return res.status(404).json({
+        code: '404',
+        status: 'Not Found',
+        errors: {message: 'User not found'},
+      });
+    }
 
-  return res.status(200).json({
-    code: '200',
-    status: 'OK',
-    data: {
-      accessToken: accessToken,
-    },
-  });
+    // Split the roles string into an array
+    const rolesArray = userWithRoles.roles.split(',');
+
+    // Prepare the payload for JWT
+    const userForToken = {
+      nrp: userWithRoles.nrp,
+      name: userWithRoles.name,
+      user_id: userWithRoles.user_id,
+      roles: rolesArray,
+    };
+
+    // Generate new Access Token
+    const accessToken = jwt.sign(userForToken,
+        process.env.ACCESS_TOKEN_SECRET, {
+          expiresIn: '2hr',
+        });
+
+    return res.status(200).json({
+      code: '200',
+      status: 'OK',
+      data: {
+        accessToken: accessToken,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      code: '500',
+      status: 'Internal Server Error',
+      errors: {message: 'An error occurred while generating new token'},
+    });
+  }
 };
 
 // log out
