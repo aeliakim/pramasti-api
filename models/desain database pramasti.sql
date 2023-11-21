@@ -42,7 +42,7 @@ CREATE TABLE kelompok (
   kapasitas INT NOT NULL, -- jumlah maksimal anggota kelompok
   nama_kelompok VARCHAR(255),
   jadwal_id INT NOT NULL,
-  FOREIGN KEY (jadwal_id) REFERENCES jadwalPraktikum(jadwal_id) ON DELETE CASCADE,
+  FOREIGN KEY (jadwal_id) REFERENCES jadwalPraktikum(jadwal_id) ON DELETE CASCADE
 );
 
 CREATE TABLE mhsPilihPraktikum (
@@ -79,7 +79,7 @@ CREATE TABLE asistenJadwal (
   PRIMARY KEY (jadwal_id, user_id),
   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
   FOREIGN KEY (jadwal_id) REFERENCES jadwalPraktikum(jadwal_id) ON DELETE CASCADE,
-  FOREIGN KEY (praktikum_id) REFERENCES praktikum(praktikum_id) ON DELETE CASCADE;
+  FOREIGN KEY (praktikum_id) REFERENCES praktikum(praktikum_id) ON DELETE CASCADE
 );
 
 CREATE TABLE roles (
