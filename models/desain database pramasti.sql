@@ -86,7 +86,7 @@ CREATE TABLE roles (
   role_id INT AUTO_INCREMENT PRIMARY KEY,
   role_name VARCHAR(100) NOT NULL,
   user_id INT NOT NULL,
-  praktikum_id INT NOT NULL,
+  praktikum_id INT DEFAULT NULL,
   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
   FOREIGN KEY (praktikum_id) REFERENCES praktikum(praktikum_id) ON DELETE CASCADE
 );

@@ -18,7 +18,7 @@ knex.raw('SELECT 1+1 AS result')
     });
 
 const web = express();
-const port = 8080;
+const port = process.env.PORT;
 
 // eslint-disable-next-line new-cap
 const v1Router = express.Router();
