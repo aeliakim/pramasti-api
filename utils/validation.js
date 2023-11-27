@@ -7,7 +7,7 @@ const validateNRP = (nrp) => {
 
 const validateEmail = (email) => {
   return !email.match(
-      /^[\w-\.]+@student.its.ac.id$/,
+      /^[\w.-]+@([\w-]+\.)+its\.ac\.id$/,
   );
 };
 

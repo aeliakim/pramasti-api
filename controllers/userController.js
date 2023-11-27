@@ -41,7 +41,7 @@ const register = async (req, res) => {
       code: '400',
       status: 'Bad Request',
       errors: {
-        message: 'Invalid Email, use NRP@student.its.ac.id email',
+        message: 'Invalid Email, use ITS email',
       },
     });
   }
