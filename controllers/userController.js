@@ -279,7 +279,7 @@ const logout = async (req, res) => {
 
 // melihat profile sendiri (all role)
 const profile = async (req, res) => {
-  const {nrp} = req;
+  const nrp = req.user.nrp;
 
   try {
     const result = await knex('users').where('nrp', nrp);
@@ -292,7 +292,7 @@ const profile = async (req, res) => {
         status: 'OK',
         data: {
           user_id: user.user_id,
-          name: user.name,
+          name: user.nama,
           nrp: user.nrp,
           departemen: user.departemen,
           nohp: user.nohp,
@@ -314,10 +314,11 @@ const profile = async (req, res) => {
 
 // melihat profile asisten
 const assistantProfile = async (req, res) => {
-  const userId = req.user_id;
+  const userId = req.user.user_id;
 
+  // Mengambil pilihan praktikum praktikan
   const studentChoice = await knex('mhsPilihPraktikum')
-      .where('mahasiswa_id', userId).first();
+      .where('user_id', userId).first();
 
   if (!studentChoice) {
     return res.status(404).json({
@@ -327,22 +328,22 @@ const assistantProfile = async (req, res) => {
     });
   }
 
-  // Mengambil kelompok_id dari pilihan praktikan
-  const studentGroupId = studentChoice.kelompok_id;
+  // Mengambil jadwal_id dari pilihan praktikan
+  const scheduleId = studentChoice.jadwal_id;
 
-  // Mengambil user_id asisten berdasarkan asisten_id dari kelompok
-  const group = await knex('kelompok')
-      .where('kelompok_id', studentGroupId).first();
+  // Mengambil user_id asisten dari tabel asistenJadwal berdasarkan jadwal_id
+  const assistantSchedule = await knex('asistenJadwal')
+      .where('jadwal_id', scheduleId).first();
 
-  if (!group) {
+  if (!assistantSchedule) {
     return res.status(404).json({
       code: '404',
       status: 'Not Found',
-      message: 'Group not found',
+      message: 'Asisten untuk jadwal ini tidak ditemukan',
     });
   }
 
-  const assistantUserId = group.asisten_id;
+  const assistantUserId = assistantSchedule.user_id;
 
   // Mengambil profil asisten dari tabel users
   const assistant = await knex('users')
@@ -352,10 +353,11 @@ const assistantProfile = async (req, res) => {
     return res.status(404).json({
       code: '404',
       status: 'Not Found',
-      message: 'Assistant not found',
+      message: 'Profil asisten tidak ditemukan',
     });
   }
 
+  // Kirim profil asisten sebagai response
   return res.status(200).json({
     code: '200',
     status: 'OK',

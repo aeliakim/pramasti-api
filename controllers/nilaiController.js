@@ -74,14 +74,21 @@ const addNilai = async (req, res) => {
     }
 
     // Menyimpan nilai baru ke dalam database
-    const insertedNilai = await knex('nilai').insert({
+    const [nilaiId] = await knex('nilai').insert({
       user_id,
       praktikum_id,
       nilai,
     });
 
+    const insertedNilai = {
+      nilai_id: nilaiId,
+      user_id,
+      praktikum_id,
+      nilai,
+    };
+
     return res.status(201).json({
-      code: '200',
+      code: '201',
       message: 'Nilai berhasil ditambahkan.',
       data: insertedNilai,
     });
@@ -126,7 +133,14 @@ const editNilai = async (req, res) => {
       nilai: {nilai_id, nilai},
     });
   } catch (error) {
-
+    console.error(error);
+    return res.status(500).json({
+      code: '500',
+      status: 'Internal Server Error',
+      errors: {
+        message: 'An error occurred while editing data',
+      },
+    });
   }
 };
 

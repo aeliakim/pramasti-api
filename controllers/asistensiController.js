@@ -106,7 +106,7 @@ const deleteAsistensi = async (req, res) => {
     const hasPermission = userRoles.includes('admin') ||
     userRoles.includes('dosen') ||
     (userRoles.includes('koordinator') && asistenId !== userId) ||
-    (userRoles.includes('asisten') && asistenId === userId);
+    (userRoles.includes('asisten') && asistenId == userId);
 
     if (!hasPermission) {
       return res.status(403).json({
