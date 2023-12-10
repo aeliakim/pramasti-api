@@ -10,16 +10,19 @@ const getJadwalAsistensi = async (req, res) => {
         .leftJoin('asistenJadwal as aj', 'jp.jadwal_id', 'aj.jadwal_id')
         .leftJoin('users as u', 'aj.user_id', 'u.user_id')
         .leftJoin('kelompok as k', 'jp.jadwal_id', 'k.jadwal_id')
+        .leftJoin('modul as m', 'jp.id_modul', 'm.id_modul')
         .select(
+            'p.praktikum_id',
+            'jp.jadwal_id',
             'p.praktikum_name',
-            'jp.judul_modul',
-            'jp.tanggal',
-            'jp.waktu_mulai as sesi',
+            'm.judul_modul',
+            'jp.start_tgl',
+            'jp.start_wkt as sesi',
             'u.nama as nama_asisten',
             'k.nama_kelompok',
         )
         .where('p.praktikum_id', praktikum_id)
-        .orderBy(['jp.tanggal', 'jp.waktu_mulai']);
+        .orderBy(['jp.start_tgl', 'jp.start_wkt']);
 
     return res.status(200).json({
       code: '200',

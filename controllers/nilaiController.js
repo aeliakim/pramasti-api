@@ -7,24 +7,29 @@ const {knex} = require('../configs/data-source.js');
 // menampilkan daftar peserta
 const getPeserta = async (req, res) => {
   const praktikumId = req.params.praktikumId;
+  const {semester, tahun_akademik} = req.query;
   try {
-    const peserta = await knex('mhsPilihPraktikum as mp')
+    let query = knex('mhsPilihPraktikum as mp')
         .leftJoin('users as u', 'u.user_id', 'mp.user_id')
         .leftJoin('praktikum as p', 'p.praktikum_id', 'mp.praktikum_id')
-        .leftJoin('nilai as n', function() {
-          this.on('mp.user_id', '=', 'n.user_id')
-              .andOn('mp.praktikum_id', '=', 'n.praktikum_id');
-        })
-        .where({'p.praktikum_id': praktikumId})
-        .select(
-            'u.user_id',
-            'u.nama',
-            'u.nrp',
-            'u.departemen',
-            'n.nilai',
-        )
-        .orderBy('u.nrp', 'asc');
+        .leftJoin('nilai_akhir as n', 'mp.user_id', 'n.user_id')
+        .where('mp.praktikum_id', praktikumId);
 
+    // Jika filter semester dan tahun akademik disediakan, tambahkan ke query
+    if (semester) {
+      query = query.where('mp.semester', semester);
+    }
+    if (tahun_akademik) {
+      query = query.where('mp.tahun_akademik', tahun_akademik);
+    }
+
+    const peserta = await query.select(
+        'u.user_id',
+        'u.nama',
+        'u.nrp',
+        'u.departemen',
+        'n.nilai_akhir',
+    ).orderBy('u.nrp', 'asc');
     if (peserta.length === 0) {
       return res.status(404).json({
         code: '404',
@@ -51,46 +56,55 @@ const getPeserta = async (req, res) => {
 };
 
 // menambahkan nilai
-const addNilai = async (req, res) => {
+const addOrUpdateNilai = async (req, res) => {
   const praktikum_id = req.params.praktikumId;
-  const {user_id, nilai} = req.body;
+  const user_id = req.params.userId;
+  const {id_modul, nilai_modul} = req.body;
+  const numericNilai = parseInt(nilai_modul, 10);
   try {
-    // Validasi input
-    if (!user_id || !praktikum_id || nilai === undefined) {
-      return res.status(400).json({
-        message: 'Informasi user_id, praktikum_id, dan nilai diperlukan.',
-      });
+    // Validasi input nilai sebagai numerik
+    if (isNaN(numericNilai)) {
+      return res.status(400).json({message: 'Nilai harus berupa angka.'});
     }
 
-    // Memeriksa apakah nilai sudah ada
-    const existingNilai = await knex('nilai')
-        .where({user_id, praktikum_id})
+    // Cek apakah nilai modul sudah ada
+    const existingNilaiModul = await knex('nilai')
+        .where({user_id, praktikum_id, id_modul})
         .first();
 
-    if (existingNilai) {
-      return res.status(409).json({
-        message: 'Nilai untuk mahasiswa dan praktikum ini sudah ada.',
+    if (existingNilaiModul) {
+      // Update nilai modul yang sudah ada
+      await knex('nilai')
+          .where({user_id, praktikum_id, id_modul})
+          .update({nilai_modul: numericNilai});
+    } else {
+      // Insert nilai modul baru jika belum ada
+      await knex('nilai').insert({
+        user_id,
+        praktikum_id,
+        id_modul,
+        nilai_modul: numericNilai,
       });
     }
 
-    // Menyimpan nilai baru ke dalam database
-    const [nilaiId] = await knex('nilai').insert({
+    // Hitung nilai akhir berdasarkan semua nilai modul yang telah diinputkan
+    const nilaiModulRows = await knex('nilai')
+        .where({user_id, praktikum_id})
+        .select('nilai_modul');
+
+    const totalNilai = nilaiModulRows.reduce((
+        acc, row) => acc + row.nilai_modul, 0);
+    const nilaiAkhir = nilaiModulRows.length ? totalNilai /
+    nilaiModulRows.length : 0;
+
+    // Response dengan nilai akhir
+    return res.status(200).json({
+      message: 'Nilai modul berhasil diupdate.',
       user_id,
       praktikum_id,
-      nilai,
-    });
-
-    const insertedNilai = {
-      nilai_id: nilaiId,
-      user_id,
-      praktikum_id,
-      nilai,
-    };
-
-    return res.status(201).json({
-      code: '201',
-      message: 'Nilai berhasil ditambahkan.',
-      data: insertedNilai,
+      id_modul,
+      nilai_modul: nilai_modul,
+      nilai_akhir: nilaiAkhir,
     });
   } catch (error) {
     console.error(error);
@@ -104,46 +118,6 @@ const addNilai = async (req, res) => {
   }
 };
 
-// mengedit nilai
-const editNilai = async (req, res) => {
-  const nilai_id = req.params.nilaiId;
-  const {nilai} = req.body;
-
-  try {
-    // Validasi input
-    if (nilai === undefined) {
-      return res.status(400).json({
-        message: 'Nilai diperlukan.',
-      });
-    }
-
-    // Memeriksa apakah nilai ada
-    const existingNilai = await knex('nilai').where({nilai_id}).first();
-    if (!existingNilai) {
-      return res.status(404).json({
-        message: 'Nilai tidak ditemukan.',
-      });
-    }
-
-    // Mengedit nilai yang ada di database
-    await knex('nilai').where({nilai_id}).update({nilai});
-
-    return res.status(200).json({
-      message: 'Nilai berhasil diperbarui.',
-      nilai: {nilai_id, nilai},
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      code: '500',
-      status: 'Internal Server Error',
-      errors: {
-        message: 'An error occurred while editing data',
-      },
-    });
-  }
-};
-
 module.exports = {
-  getPeserta, addNilai, editNilai,
+  getPeserta, addOrUpdateNilai,
 };

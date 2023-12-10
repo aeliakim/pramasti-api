@@ -4,7 +4,7 @@ const {knex} = require('../configs/data-source.js');
 const getAllPengumuman = async (req, res) => {
   try {
     const pengumuman = await knex('pengumuman')
-        .select('judul', 'deskripsi');
+        .select('pengumuman_id', 'judul', 'deskripsi');
 
     return res.status(200).json({
       code: '200',

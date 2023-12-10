@@ -21,21 +21,24 @@ const getRoleLists = async (req, res) => {
       data = await knex('users')
           .join('roles', 'users.user_id', 'roles.user_id')
           .where('roles.praktikum_id', praktikumId)
-          .select('users.nama', 'users.nrp', 'roles.role_name');
+          .select('roles.role_id',
+              'users.nama', 'users.nrp', 'roles.role_name');
     } else if (isKoordinator) {
       // Logika untuk koordinator
       data = await knex('users')
           .join('roles', 'users.user_id', 'roles.user_id')
           .where('roles.role_name', 'asisten')
           .andWhere('roles.praktikum_id', praktikumId)
-          .select('users.nama', 'users.nrp', 'roles.role_name');
+          .select('roles.role_id',
+              'users.nama', 'users.nrp', 'roles.role_name');
     } else if (isDosen) {
       // Logika untuk dosen
       data = await knex('users')
           .join('roles', 'users.user_id', 'roles.user_id')
           .whereNot('roles.role_name', 'praktikan')
           .andWhere('roles.praktikum_id', praktikumId)
-          .select('users.nama', 'users.nrp', 'roles.role_name');
+          .select('roles.role_id',
+              'users.nama', 'users.nrp', 'roles.role_name');
     } else {
       // User tidak memiliki role yang diizinkan untuk melihat data ini
       return res.status(403).json({

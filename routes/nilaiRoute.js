@@ -4,7 +4,7 @@ const express = require('express');
 // eslint-disable-next-line new-cap
 const router = express.Router();
 const {
-  getPeserta, addNilai, editNilai,
+  getPeserta, addOrUpdateNilai,
 } = require('../controllers/nilaiController');
 const {
   authorize,
@@ -15,11 +15,7 @@ router.get('/:praktikumId/peserta', authenticateAccessToken,
     authorize(['asisten', 'koordinator', 'dosen', 'admin']), getPeserta);
 
 // menambahkan nilai
-router.post('/:praktikumId/peserta', authenticateAccessToken,
-    authorize(['asisten', 'koordinator', 'dosen', 'admin']), addNilai);
-
-// mengedit nilai
-router.put('/:praktikumId/peserta/:nilaiId', authenticateAccessToken,
-    authorize(['asisten', 'koordinator', 'dosen', 'admin']), editNilai);
+router.put('/:praktikumId/peserta/:userId', authenticateAccessToken,
+    authorize(['asisten', 'admin']), addOrUpdateNilai);
 
 module.exports = router;

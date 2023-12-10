@@ -4,21 +4,45 @@ const {knex} = require('../configs/data-source.js');
 // melihat daftar praktikum yang tersedia
 const getAllPraktikum = async (req, res) => {
   try {
-    const role = req.user.roles;
+    const userId = req.user.user_id;
+    // Role yang dipilih user dari dropdown atau role default dari token
+    const selectedRole = req.query.role || req.user.roles[0];
     let praktikums;
 
-    if (role === 'praktikan') {
+    if (selectedRole === 'praktikan') {
+      // Praktikan melihat semua praktikum dengan nilai akhir
       praktikums = await knex('praktikum')
-          .leftJoin('nilai', 'praktikum.praktikum_id', 'nilai.praktikum_id')
-          .select('praktikum.praktikum_name',
+          .leftJoin('nilai_akhir', function() {
+            this.on('praktikum.praktikum_id', '=', 'nilai_akhir.praktikum_id')
+                .andOn('nilai_akhir.user_id', '=', knex.raw('?', [userId]));
+          })
+          .select(
+              'praktikum.praktikum_id',
+              'praktikum.praktikum_name',
               'praktikum.deskripsi',
               'praktikum.logo_praktikum',
-              'nilai.nilai as nilai');
-    } else {
+              'nilai_akhir.nilai_akhir as nilai',
+          );
+    } else if (selectedRole === 'admin') {
+      // Admin melihat semua praktikum tanpa nilai akhir
       praktikums = await knex('praktikum')
-          .select('praktikum.praktikum_name',
+          .select(
+              'praktikum.praktikum_id',
+              'praktikum.praktikum_name',
               'praktikum.deskripsi',
-              'praktikum.logo_praktikum');
+              'praktikum.logo_praktikum',
+          );
+    } else {
+      praktikums = await knex('praktikum as p')
+          .join('roles as r', 'p.praktikum_id', 'r.praktikum_id')
+          .where('r.user_id', req.user.user_id)
+          .andWhere('r.role_name', selectedRole)
+          .select(
+              'p.praktikum_id',
+              'p.praktikum_name',
+              'p.deskripsi',
+              'p.logo_praktikum',
+          );
     }
 
     return res.status(200).json({
@@ -38,58 +62,61 @@ const getAllPraktikum = async (req, res) => {
   }
 };
 
-// melihat jadwal praktikum (praktikan)
-const getAllJadwal = async (req, res) => {
-  const userId = req.user.user_id;
-  try {
-    const jadwal = await knex('jadwalPraktikum')
-        .leftJoin('mhsPilihPraktikum', 'jadwalPraktikum.jadwal_id',
-            'mhsPilihPraktikum.jadwal_id')
-        .leftJoin('kelompok', 'jadwalPraktikum.jadwal_id', 'kelompok.jadwal_id')
-        .leftJoin('asistenJadwal', 'jadwalPraktikum.jadwal_id',
-            'asistenJadwal.jadwal_id')
-        .leftJoin('users', 'asistenJadwal.user_id', 'users.user_id')
-        .leftJoin('praktikum', 'jadwalPraktikum.praktikum_id',
-            'praktikum.praktikum_id')
-        .where('mhsPilihPraktikum.user_id', userId)
-        .select(
-            'praktikum.praktikum_name',
-            'jadwalPraktikum.judul_modul',
-            'jadwalPraktikum.tanggal',
-            'jadwalPraktikum.waktu_mulai',
-            'users.nama as nama_asisten',
-            'kelompok.nama_kelompok',
-        );
+// menambahkan modul
+/**
+ * Extracts the relevant part of the module title.
+ * @param {string} judulModul - The full module title.
+ * @return {string} The relevant part of the module title.
+ */
+function extractRelevantModuleTitle(judulModul) {
+  const parts = judulModul.split(':').map((part) => part.trim());
+  return parts.length > 1 ? parts[1] : parts[0];
+}
 
-    return res.status(200).json({
-      code: '200',
-      status: 'Success',
-      data: jadwal,
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      code: '500',
-      status: 'Internal Server Error',
-      errors: {
-        message: 'An error occurred while fetching data',
-      },
-    });
-  }
-};
+/**
+ * Generates a code from a given name.
+ * @param {string} name - The name to generate the code from.
+ * @return {string} The generated code.
+ */
+function generateCodeFromName(name) {
+  return name.split(' ').map((word) => word[0]).join('').toUpperCase();
+}
 
-// buat jadwal praktikum
-const addJadwalPraktikum = async (req, res) => {
-  const praktikum_id = parseInt(req.params.praktikumId, 10);
-  const {
-    judul_modul,
-    tanggal,
-    waktu_mulai,
-    kuota,
-  } = req.body;
+/**
+ * Retrieves the name of the praktikum.
+ * @param {number} praktikumId - The ID of the praktikum.
+ * @return {Promise<string|null>} The name of the praktikum.
+ */
+async function getPraktikumName(praktikumId) {
+  const praktikum = await knex('praktikum')
+      .where({praktikum_id: praktikumId}).first();
+  return praktikum ? praktikum.praktikum_name : null;
+}
+
+/**
+ * Adds a new module.
+ * @param {Request} req - The request object.
+ * @param {Response} res - The response object.
+ * @return {Promise<Response>}
+ */
+const addModul = async (req, res) => {
+  const praktikumId = req.params.praktikumId;
+  const {judulModul} = req.body;
+
   try {
+    const praktikumName = await getPraktikumName(praktikumId);
+    if (!praktikumName) {
+      return res.status(404).json({
+        code: '404',
+        status: 'Not Found',
+        errors: {
+          message: 'Praktikum tidak ditemukan!',
+        },
+      });
+    }
+
     // validasi input
-    if (!judul_modul || !tanggal || !waktu_mulai || !kuota) {
+    if (!judulModul) {
       return res.status(400).json({
         code: '400',
         status: 'Bad Request',
@@ -99,21 +126,142 @@ const addJadwalPraktikum = async (req, res) => {
       });
     }
 
+    const praktikumCode = generateCodeFromName(praktikumName);
+    const addedModules = [];
+
+    const relevantTitle = extractRelevantModuleTitle(judulModul);
+    const modulCode = generateCodeFromName(relevantTitle);
+    const idModul = `${praktikumCode}-${modulCode}`;
+
+    await knex('modul').insert({
+      praktikum_id: praktikumId,
+      judul_modul: judulModul,
+      id_modul: idModul,
+    });
+
+    addedModules.push({
+      id_modul: idModul,
+      judul_modul: judulModul,
+      praktikum_id: praktikumId,
+    });
+
+    return res.status(201).json({
+      code: '201',
+      status: 'Success',
+      message: 'Semua modul berhasil ditambahkan.',
+      data: addedModules,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      code: '500',
+      status: 'Internal Server Error',
+      errors: {
+        message: 'An error occurred while adding data',
+      },
+    });
+  }
+};
+
+// menghapus modul
+const deleteModul = async (req, res) => {
+  const praktikum_id = req.params.praktikumId;
+  const id_modul = req.params.id_modul;
+
+  try {
+    const result = await knex('modul')
+        .where({'id_modul': id_modul, 'praktikum_id': praktikum_id})
+        .del();
+    if (result == 1) {
+      return res.status(200).json({
+        code: '200',
+        status: 'OK',
+        data: {
+          message: 'Modul removed',
+        },
+      });
+    } else {
+      return res.status(404).json({
+        code: '404',
+        status: 'Not Found',
+        errors: {
+          message: 'Modul does not exist in the database',
+        },
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      code: '500',
+      status: 'Internal Server Error',
+      errors: {
+        message: 'An error occurred while deleting data',
+      },
+    });
+  }
+};
+
+// buat jadwal praktikum
+const addJadwalPraktikum = async (req, res) => {
+  const praktikum_id = req.params.praktikumId;
+  const {
+    id_modul,
+    start_tgl,
+    start_wkt,
+    kuota,
+  } = req.body;
+  try {
+    // validasi input
+    if (!id_modul || !start_tgl || !start_wkt || !kuota) {
+      return res.status(400).json({
+        code: '400',
+        status: 'Bad Request',
+        errors: {
+          message: 'Semua field harus diisi!',
+        },
+      });
+    }
+
+    // Mendapatkan judul modul dari tabel modul
+    const modul = await knex('modul')
+        .where({id_modul: id_modul})
+        .first();
+
+    if (!modul) {
+      return res.status(404).json({
+        code: '404',
+        status: 'Not Found',
+        errors: {
+          message: 'Modul tidak ditemukan!',
+        },
+      });
+    }
+
+    // Menghitung jumlah jadwal yang sudah ada untuk modul ini
+    const existingJadwals = await knex('jadwalPraktikum')
+        .where({id_modul})
+        .count('* as total');
+
+    const jadwalNumber = existingJadwals[0].total + 1;
+    const id_modul_jadwal = `${id_modul}-${jadwalNumber}`;
+
     // Menyimpan ke database
     const [jadwalId] = await knex('jadwalPraktikum').insert({
       praktikum_id,
-      judul_modul,
-      tanggal,
-      waktu_mulai,
+      id_modul,
+      id_modul_jadwal,
+      start_tgl,
+      start_wkt,
       kuota,
     });
 
     const jadwalPraktikum = {
       jadwal_id: jadwalId,
       praktikum_id,
-      judul_modul,
-      tanggal,
-      waktu_mulai,
+      id_modul,
+      id_modul_jadwal,
+      start_tgl,
+      start_wkt,
       kuota,
     };
 
@@ -173,17 +321,17 @@ const deleteJadwalPraktikum = async (req, res) => {
 
 // mengedit jadwal praktikum (koor)
 const editJadwal = async (req, res) => {
-  const praktikum_id = req.params.praktikumId;
+  const praktikum_id =req.params.praktikumId;
   const jadwal_id = req.params.jadwalId;
   const {
-    judul_modul,
-    tanggal,
-    waktu_mulai,
+    id_modul,
+    start_tgl,
+    start_wkt,
     kuota,
   } = req.body;
   try {
     // validasi input
-    if (!judul_modul || !tanggal || !waktu_mulai || !kuota) {
+    if (!id_modul || !start_tgl || !start_wkt || !kuota) {
       return res.status(400).json({
         code: '400',
         status: 'Bad Request',
@@ -194,7 +342,7 @@ const editJadwal = async (req, res) => {
     }
 
     const jadwal = await knex('jadwalPraktikum')
-        .where({jadwal_id, praktikum_id})
+        .where({jadwal_id: jadwal_id, praktikum_id: praktikum_id})
         .first();
 
     if (!jadwal) {
@@ -208,16 +356,16 @@ const editJadwal = async (req, res) => {
     }
 
     await knex('jadwalPraktikum')
-        .where({jadwal_id, praktikum_id})
+        .where({jadwal_id: jadwal_id})
         .update({
-          judul_modul,
-          tanggal,
-          waktu_mulai,
+          id_modul, // Hanya perbarui jika modul berubah
+          start_tgl,
+          start_wkt,
           kuota,
         });
 
     const jadwalUpdated = await knex('jadwalPraktikum')
-        .where({jadwal_id, praktikum_id})
+        .where({jadwal_id: jadwal_id, praktikum_id: praktikum_id})
         .first();
 
     return res.status(200).json({
@@ -370,14 +518,36 @@ const editPraktikum = async (req, res) => {
 };
 
 // mengambil praktikum (praktikan)
+/**
+ * menentukan semester dan tahun akademik
+ * @return {string}
+ */
+function determineSemesterAndAcademicYear() {
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth() + 1;
+  let semester;
+  let academicYear;
+
+  if (currentMonth >= 2 && currentMonth <= 7) {
+    semester = 'Genap';
+    academicYear = `${
+      currentDate.getFullYear() - 1}-${currentDate.getFullYear()}`;
+  } else {
+    semester = 'Ganjil';
+    academicYear = `${
+      currentDate.getFullYear()}-${currentDate.getFullYear() + 1}`;
+  }
+
+  return {semester, academicYear};
+}
 const ambilJadwal = async (req, res) => {
   const user_id = req.user.user_id;
   const praktikum_id = req.params.praktikumId;
-  const {tanggal, waktu_mulai} = req.body;
+  const {start_tgl, start_wkt, jadwal_id} = req.body;
 
   try {
     // Validasi input
-    if (!tanggal || !waktu_mulai) {
+    if (!start_tgl || !start_wkt || !jadwal_id) {
       return res.status(400).json({
         code: '400',
         status: 'Bad Request',
@@ -385,27 +555,33 @@ const ambilJadwal = async (req, res) => {
       });
     }
 
-    const jadwalTersedia = await knex('jadwalPraktikum')
-        .where({praktikum_id})
-        .andWhere('tanggal', tanggal)
-        .andWhere('waktu_mulai', waktu_mulai)
-        .andWhere('kuota', '>', 0)
-        .select('jadwal_id', 'kuota')
+    const {semester, academicYear} = determineSemesterAndAcademicYear();
+
+    // Mencari jadwal berdasarkan id_modul, start_tgl, dan waktu
+    const jadwal = await knex('jadwalPraktikum')
+        .where({jadwal_id, start_tgl, start_wkt})
         .first();
 
-    if (!jadwalTersedia) {
-      return res.status(409).json({
-        code: '409',
-        status: 'Conflict',
-        message: 'Tidak ada jadwal tersedia yang sesuai.',
+    if (!jadwal) {
+      return res.status(404).json({
+        code: '404',
+        status: 'Not Found',
+        message:
+        'Jadwal tidak ditemukan atau tidak tersedia pada waktu tersebut.',
       });
     }
 
-    const {jadwal_id, kuota} = jadwalTersedia;
+    if (jadwal.kuota <= 0) {
+      return res.status(409).json({
+        code: '409',
+        status: 'Conflict',
+        message: 'Kuota untuk jadwal ini sudah penuh.',
+      });
+    }
 
     // Memeriksa apakah praktikan sudah mengambil jadwal ini
     const sudahDiambil = await knex('mhsPilihPraktikum')
-        .where({user_id, jadwal_id})
+        .where({user_id, jadwal_id: jadwal.jadwal_id})
         .first();
 
     if (sudahDiambil) {
@@ -416,13 +592,31 @@ const ambilJadwal = async (req, res) => {
       });
     }
 
+    const alreadyEnrolled = await knex('mhsPilihPraktikum as mp')
+        .join('jadwalPraktikum as jp', 'mp.jadwal_id', 'jp.jadwal_id')
+        .where({
+          'mp.user_id': user_id,
+          'jp.id_modul': jadwal.id_modul,
+        })
+        .andWhereNot('jp.jadwal_id', jadwal_id)
+        .andWhereNot('jp.start_tgl', jadwal.start_tgl)
+        .first();
+
+    if (alreadyEnrolled) {
+      return res.status(409).json({
+        code: '409',
+        status: 'Conflict',
+        message: 'Anda sudah terdaftar di modul ini pada hari yang berbeda.',
+      });
+    }
+
     // Mencari kelompok dengan kapasitas yang belum penuh
     let kelompok = await knex('kelompok')
         .leftJoin('mhsPilihPraktikum', 'kelompok.kelompok_id',
             'mhsPilihPraktikum.kelompok_id')
         .select('kelompok.*')
         .count('mhsPilihPraktikum.user_id as jumlah_anggota')
-        .where('kelompok.jadwal_id', jadwal_id)
+        .where('kelompok.jadwal_id', jadwal.jadwal_id)
         .groupBy('kelompok.kelompok_id')
         .having(knex.raw('jumlah_anggota < kelompok.kapasitas'))
         .first();
@@ -444,7 +638,7 @@ const ambilJadwal = async (req, res) => {
       // Menambahkan kelompok baru dengan nama yang telah ditentukan
       const insertedIds = await knex('kelompok').insert({
         kapasitas: 5,
-        jadwal_id,
+        jadwal_id: jadwal.jadwal_id,
         nama_kelompok: newGroupName,
       });
 
@@ -457,12 +651,14 @@ const ambilJadwal = async (req, res) => {
     await knex('mhsPilihPraktikum').insert({
       user_id,
       praktikum_id,
-      jadwal_id,
+      jadwal_id: jadwal.jadwal_id,
       kelompok_id: kelompok.kelompok_id,
+      semester: semester,
+      tahun_akademik: academicYear,
     });
 
     // Mengurangi kuota
-    await knex('jadwalPraktikum')
+    const kuota = await knex('jadwalPraktikum')
         .where({jadwal_id})
         .decrement('kuota', 1);
 
@@ -471,10 +667,10 @@ const ambilJadwal = async (req, res) => {
       status: 'OK',
       message: 'Jadwal berhasil diambil.',
       data: {
-        jadwal_id,
+        jadwal_id: jadwal.jadwal_id,
         praktikum_id,
-        tanggal,
-        waktu_mulai,
+        start_tgl,
+        start_wkt,
         kuota: kuota - 1, // Menampilkan kuota yang telah diperbarui
         kelompok_id: kelompok.kelompok_id,
         nama_kelompok: kelompok.nama_kelompok,
@@ -497,10 +693,18 @@ const getJadwalPraktikum = async (req, res) => {
   const praktikumId = req.params.praktikumId;
   try {
     const jadwals = await knex('jadwalPraktikum')
-        .select('judul_modul', 'tanggal', 'waktu_mulai', 'kuota')
-        .where({
-          praktikum_id: praktikumId,
-        });
+        .leftJoin('modul', 'jadwalPraktikum.id_modul', 'modul.id_modul')
+        .select(
+            'jadwalPraktikum.jadwal_id',
+            'jadwalPraktikum.id_modul',
+            'modul.judul_modul',
+            'jadwalPraktikum.start_tgl',
+            'jadwalPraktikum.start_wkt',
+            'jadwalPraktikum.kuota',
+        )
+        .where('jadwalPraktikum.praktikum_id', praktikumId)
+        .orderBy('jadwalPraktikum.start_tgl', 'asc')
+        .orderBy('jadwalPraktikum.start_wkt', 'asc');
 
     return res.status(200).json({
       status: 'success',
@@ -553,14 +757,17 @@ const lihatKelompok = async (req, res) => {
 
 // melihat jadwal praktikum (dashboard koor)
 const jadwalPrakKoor = async (req, res) => {
-  const {praktikumId} = req.params;
+  const praktikumId = req.params.praktikumId;
   try {
     const jadwal = await knex('jadwalPraktikum')
+        .leftJoin('modul', 'jadwalPraktikum.id_modul', 'modul.id_modul')
         .leftJoin('praktikum', 'jadwalPraktikum.praktikum_id',
             'praktikum.praktikum_id')
-        .where('jadwalPraktikum.praktikum_id', praktikumId)
-        .select('jadwalPraktikum.judul_modul',
-            'jadwalPraktikum.tanggal', 'jadwalPraktikum.waktu_mulai as sesi');
+        .where({'jadwalPraktikum.praktikum_id': praktikumId})
+        .select('jadwalPraktikum.jadwal_id',
+            'jadwalPraktikum.id_modul',
+            'praktikum.praktikum_id', 'modul.judul_modul',
+            'jadwalPraktikum.start_tgl', 'jadwalPraktikum.start_wkt as sesi');
 
     return res.status(200).json({
       code: '200',
@@ -573,7 +780,7 @@ const jadwalPrakKoor = async (req, res) => {
       code: '500',
       status: 'Internal Server Error',
       errors: {
-        message: 'An error occurred while adding data',
+        message: 'An error occurred while fetching data',
       },
     });
   }
@@ -583,4 +790,5 @@ module.exports = {
   getAllPraktikum, addPraktikum, deletePraktikum, addJadwalPraktikum,
   deleteJadwalPraktikum, getAllJadwal, ambilJadwal, lihatKelompok,
   jadwalPrakKoor, editJadwal, getJadwalPraktikum, editPraktikum,
+  getModul, addModul, deleteModul,
 };

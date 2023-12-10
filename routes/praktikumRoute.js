@@ -5,7 +5,7 @@ const {
   getAllPraktikum, addPraktikum, deletePraktikum,
   addJadwalPraktikum, deleteJadwalPraktikum, getAllJadwal,
   ambilJadwal, editJadwal, lihatKelompok, jadwalPrakKoor,
-  getJadwalPraktikum, editPraktikum,
+  getJadwalPraktikum, editPraktikum, addModul, getModul, deleteModul,
 } = require('../controllers/praktikumController');
 const {
   authorize,
@@ -29,11 +29,11 @@ router.put('/:praktikumId', authenticateAccessToken,
     authorize(['admin']), editPraktikum);
 
 // buat jadwal praktikum
-router.post('/:praktikumId/jadwal', authenticateAccessToken,
+router.post('/:praktikumId/modul/jadwal', authenticateAccessToken,
     authorize(['admin', 'koordinator', 'dosen']), addJadwalPraktikum);
 
 // hapus jadwal praktikum
-router.delete('/:praktikumId/jadwal/:jadwalId',
+router.delete('/:praktikumId/modul/jadwal/:jadwalId',
     authenticateAccessToken,
     authorize(['admin', 'koordinator', 'dosen']), deleteJadwalPraktikum);
 
@@ -54,12 +54,24 @@ router.get('/jadwal-praktikum/:jadwalId/kelompok', authenticateAccessToken,
     authorize(['praktikan', 'asisten', 'koordinator', 'dosen']), lihatKelompok);
 
 // mengedit jadwal praktikum
-router.put('/:praktikumId/jadwal/:jadwalId',
+router.put('/:praktikumId/modul/jadwal/:jadwalId',
     authenticateAccessToken,
     authorize(['koordinator', 'dosen', 'admin']), editJadwal);
 
 // melihat jadwal praktikum (dashboard koor)
-router.get('/:praktikumId/jadwal', authenticateAccessToken,
+router.get('/:praktikumId/modul/jadwal', authenticateAccessToken,
     authorize(['koordinator', 'dosen', 'admin']), jadwalPrakKoor);
+
+// melihat daftar modul
+router.get('/:praktikumId/modul', authenticateAccessToken,
+    authorize(['dosen', 'admin']), getModul);
+
+// menambah modul
+router.post('/:praktikumId/modul', authenticateAccessToken,
+    authorize(['dosen', 'admin']), addModul);
+
+// menghapus modul
+router.delete('/:praktikumId/modul/:id_modul', authenticateAccessToken,
+    authorize(['dosen', 'admin']), deleteModul);
 
 module.exports = router;

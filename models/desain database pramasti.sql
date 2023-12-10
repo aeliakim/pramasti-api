@@ -29,11 +29,15 @@ CREATE TABLE praktikum (
 
 CREATE TABLE jadwalPraktikum (
   jadwal_id INT AUTO_INCREMENT PRIMARY KEY,
+  id_modul VARCHAR(255) NOT NULL,
+  id_modul_jadwal VARCHAR(255) NULL,
   praktikum_id INT NOT NULL,
-  judul_modul VARCHAR(255) NOT NULL,
-  tanggal DATE NOT NULL,
-  waktu_mulai TIME NOT NULL,
-  kuota INT NOT NULL,
+  judul_modul VARCHAR(255) NULL,
+  start_tgl DATE NULL,
+  start_wkt TIME NULL,
+  finish_tgl DATE NULL,
+  finish_wkt TIME NULL,
+  kuota INT NULL,
   FOREIGN KEY (praktikum_id) REFERENCES praktikum(praktikum_id) ON DELETE CASCADE
 );
 
@@ -58,12 +62,23 @@ CREATE TABLE mhsPilihPraktikum (
 );
 
 CREATE TABLE nilai (
-  nilai_id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   praktikum_id INT NOT NULL,
-  nilai float(5,2) NOT NULL,
+  id_modul VARCHAR(255) NOT NULL,
+  nilai_modul float(5,2) NULL,
+  PRIMARY KEY (user_id, praktikum_id, id_modul),
   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-  FOREIGN KEY (praktikum_id) REFERENCES praktikum(praktikum_id) ON DELETE CASCADE
+  FOREIGN KEY (praktikum_id) REFERENCES praktikum(praktikum_id) ON DELETE CASCADE,
+  FOREIGN KEY (id_modul) REFERENCES modul(id_modul) ON DELETE CASCADE
+);
+
+CREATE TABLE nilai_akhir (
+    user_id INT NOT NULL,
+    praktikum_id INT NOT NULL,
+    nilai_akhir INT,
+    PRIMARY KEY (user_id, praktikum_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (praktikum_id) REFERENCES praktikum(praktikum_id) ON DELETE CASCADE
 );
 
 CREATE TABLE pengumuman (
