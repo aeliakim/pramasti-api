@@ -105,6 +105,7 @@ const register = async (req, res) => {
           status: 'OK',
           data: {
             message: 'Register Success. Please Log in',
+            role: role,
           },
         });
       }).catch((error) => {
@@ -175,6 +176,7 @@ const login = async (req, res) => {
               data: {
                 accessToken: accessToken,
                 refreshToken: refreshToken,
+                userRoles: rolesList,
               },
             }));
           });
@@ -280,9 +282,12 @@ const logout = async (req, res) => {
 // melihat profile sendiri (all role)
 const profile = async (req, res) => {
   const nrp = req.user.nrp;
+  const userId = req.user.user_id;
 
   try {
     const result = await knex('users').where('nrp', nrp);
+    const rolesList = await knex('roles')
+        .where('user_id', userId).pluck('role_name');
 
     if (result.length == 1) {
       const user = result[0];
@@ -297,6 +302,7 @@ const profile = async (req, res) => {
           departemen: user.departemen,
           nohp: user.nohp,
           email: user.email,
+          roles: rolesList,
         },
       });
     }

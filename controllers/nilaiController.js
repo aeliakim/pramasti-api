@@ -24,19 +24,20 @@ const getPeserta = async (req, res) => {
     }
 
     const peserta = await query.select(
+        'p.praktikum_id',
         'u.user_id',
         'u.nama',
         'u.nrp',
         'u.departemen',
         'n.nilai_akhir',
     ).orderBy('u.nrp', 'asc');
-    if (peserta.length === 0) {
+    /* if (peserta.length === 0) {
       return res.status(404).json({
         code: '404',
         status: 'Not Found',
         message: 'Tidak ada peserta yang terdaftar di praktikum ini.',
       });
-    }
+    }*/
 
     return res.status(200).json({
       code: '200',
@@ -118,6 +119,53 @@ const addOrUpdateNilai = async (req, res) => {
   }
 };
 
+const getNilai = async (req, res) => {
+  const praktikum_id = req.params.praktikumId;
+  const user_id = req.params.userId;
+
+  try {
+    const modulNilaiPeserta = await knex('modul as m')
+        .leftJoin('nilai as n', function() {
+          this.on('n.id_modul', '=', 'm.id_modul')
+              .andOn('n.user_id', '=', knex.raw('?', [user_id]));
+        })
+        .where('m.praktikum_id', praktikum_id)
+        .select(
+            'm.id_modul as id_modul',
+            'm.nama as nama_modul',
+            'n.nilai_modul',
+        )
+        .orderBy('m.id', 'asc');
+
+    // Mengambil informasi peserta
+    const pesertaInfo = await knex('users')
+        .where('user_id', user_id)
+        .select('nama', 'nrp')
+        .first();
+
+    // Gabungkan informasi peserta dengan nilai modulnya
+    const hasil = {
+      peserta: pesertaInfo,
+      modul: modulNilaiPeserta,
+    };
+
+    // Kembalikan hasil query
+    return res.status(200).json({
+      status: 'Success',
+      data: hasil,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      code: '500',
+      status: 'Internal Server Error',
+      errors: {
+        message: 'An error occurred while fetching data',
+      },
+    });
+  }
+};
+
 module.exports = {
-  getPeserta, addOrUpdateNilai,
+  getPeserta, addOrUpdateNilai, getNilai,
 };

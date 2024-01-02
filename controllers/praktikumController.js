@@ -786,6 +786,76 @@ const jadwalPrakKoor = async (req, res) => {
   }
 };
 
+// melihat jadwal praktikum (praktikan)
+const getAllJadwal = async (req, res) => {
+  const userId = req.user.user_id;
+  try {
+    const jadwal = await knex('jadwalPraktikum')
+        .leftJoin('mhsPilihPraktikum', 'jadwalPraktikum.jadwal_id',
+            'mhsPilihPraktikum.jadwal_id')
+        .leftJoin('kelompok', 'jadwalPraktikum.jadwal_id', 'kelompok.jadwal_id')
+        .leftJoin('asistenJadwal', 'jadwalPraktikum.jadwal_id',
+            'asistenJadwal.jadwal_id')
+        .leftJoin('users', 'asistenJadwal.user_id', 'users.user_id')
+        .leftJoin('praktikum', 'jadwalPraktikum.praktikum_id',
+            'praktikum.praktikum_id')
+        .leftJoin('modul', 'jadwalPraktikum.id_modul', 'modul.id_modul')
+        .where('mhsPilihPraktikum.user_id', userId)
+        .select(
+            'jadwalPraktikum.jadwal_id',
+            'praktikum.praktikum_id',
+            'praktikum.praktikum_name',
+            'modul.judul_modul',
+            'jadwalPraktikum.start_tgl',
+            'jadwalPraktikum.start_wkt',
+            'users.user_id as asisten_user_id',
+            'users.nama as nama_asisten',
+            'kelompok.kelompok_id',
+            'kelompok.nama_kelompok',
+        );
+
+    return res.status(200).json({
+      code: '200',
+      status: 'Success',
+      data: jadwal,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      code: '500',
+      status: 'Internal Server Error',
+      errors: {
+        message: 'An error occurred while fetching data',
+      },
+    });
+  }
+};
+
+// melihat modul
+const getModul = async (req, res) => {
+  const praktikumId = req.params.praktikumId;
+  try {
+    const modul = await knex('modul')
+        .where('modul.praktikum_id', praktikumId)
+        .select('modul.id_modul', 'modul.judul_modul');
+
+    return res.status(200).json({
+      code: '200',
+      status: 'Success',
+      data: modul,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      code: '500',
+      status: 'Internal Server Error',
+      errors: {
+        message: 'An error occurred while fetching data',
+      },
+    });
+  }
+};
+
 module.exports = {
   getAllPraktikum, addPraktikum, deletePraktikum, addJadwalPraktikum,
   deleteJadwalPraktikum, getAllJadwal, ambilJadwal, lihatKelompok,

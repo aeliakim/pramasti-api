@@ -162,8 +162,49 @@ const deleteAsistensi = async (req, res) => {
   }
 };
 
+const getAllAsistensi = async (req, res) => {
+  const userId = req.user.user_id;
+  try {
+    const jadwalAsistensi = await knex('asistenJadwal')
+        .leftJoin('jadwalPraktikum',
+            'asistenJadwal.jadwal_id', 'jadwalPraktikum.jadwal_id')
+        .leftJoin('praktikum',
+            'jadwalPraktikum.praktikum_id', 'praktikum.praktikum_id')
+        .leftJoin('modul', 'jadwalPraktikum.id_modul', 'modul.id_modul')
+        .leftJoin('kelompok', 'jadwalPraktikum.jadwal_id', 'kelompok.jadwal_id')
+        .where('asistenJadwal.user_id', userId)
+        .select(
+            'jadwalPraktikum.jadwal_id',
+            'praktikum.praktikum_id',
+            'praktikum.praktikum_name',
+            'modul.judul_modul',
+            'jadwalPraktikum.start_tgl',
+            'jadwalPraktikum.start_wkt',
+            'kelompok.kelompok_id',
+            'kelompok.nama_kelompok',
+        );
+
+    return res.status(200).json({
+      code: '200',
+      status: 'Success',
+      data: jadwalAsistensi,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      code: '500',
+      status: 'Internal Server Error',
+      errors: {
+        message: 'An error occurred while fetching assistance schedules',
+      },
+    });
+  }
+};
+
+
 module.exports = {
   getJadwalAsistensi,
   addAsistensi,
   deleteAsistensi,
+  getAllAsistensi,
 };
