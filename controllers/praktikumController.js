@@ -205,14 +205,14 @@ const deleteModul = async (req, res) => {
 const addJadwalPraktikum = async (req, res) => {
   const praktikum_id = req.params.praktikumId;
   const {
-    id_modul,
+    judul_modul,
     start_tgl,
     start_wkt,
     kuota,
   } = req.body;
   try {
     // validasi input
-    if (!id_modul || !start_tgl || !start_wkt || !kuota) {
+    if (!judul_modul || !start_tgl || !start_wkt || !kuota) {
       return res.status(400).json({
         code: '400',
         status: 'Bad Request',
@@ -224,7 +224,7 @@ const addJadwalPraktikum = async (req, res) => {
 
     // Mendapatkan judul modul dari tabel modul
     const modul = await knex('modul')
-        .where({id_modul: id_modul})
+        .where({judul_modul: judul_modul})
         .first();
 
     if (!modul) {
@@ -236,6 +236,8 @@ const addJadwalPraktikum = async (req, res) => {
         },
       });
     }
+
+    const id_modul = modul.id_modul;
 
     // Menghitung jumlah jadwal yang sudah ada untuk modul ini
     const existingJadwals = await knex('jadwalPraktikum')
@@ -324,14 +326,14 @@ const editJadwal = async (req, res) => {
   const praktikum_id =req.params.praktikumId;
   const jadwal_id = req.params.jadwalId;
   const {
-    id_modul,
+    judul_modul,
     start_tgl,
     start_wkt,
     kuota,
   } = req.body;
   try {
     // validasi input
-    if (!id_modul || !start_tgl || !start_wkt || !kuota) {
+    if (!judul_modul|| !start_tgl || !start_wkt || !kuota) {
       return res.status(400).json({
         code: '400',
         status: 'Bad Request',
@@ -340,6 +342,13 @@ const editJadwal = async (req, res) => {
         },
       });
     }
+
+    // Mendapatkan judul modul dari tabel modul
+    const modul = await knex('modul')
+        .where({judul_modul: judul_modul})
+        .first();
+
+    const id_modul = modul.id_modul;
 
     const jadwal = await knex('jadwalPraktikum')
         .where({jadwal_id: jadwal_id, praktikum_id: praktikum_id})
@@ -695,6 +704,7 @@ const getJadwalPraktikum = async (req, res) => {
     const jadwals = await knex('jadwalPraktikum')
         .leftJoin('modul', 'jadwalPraktikum.id_modul', 'modul.id_modul')
         .select(
+            'jadwalPraktikum.praktikum_id',
             'jadwalPraktikum.jadwal_id',
             'jadwalPraktikum.id_modul',
             'modul.judul_modul',
