@@ -50,22 +50,11 @@ const getRoleLists = async (req, res) => {
       });
     }
 
-    if (data.length > 0) {
-      res.status(200).json({
-        code: '200',
-        status: 'OK',
-        data: data,
-      });
-    } else {
-      res.status(404).json({
-        code: '404',
-        status: 'Not Found',
-        errors: {
-          message:
-          'Data untuk role ini tidak ditemukan dalam praktikum yang dipilih',
-        },
-      });
-    }
+    res.status(200).json({
+      code: '200',
+      status: 'OK',
+      data: data,
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({

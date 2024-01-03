@@ -98,6 +98,25 @@ const addOrUpdateNilai = async (req, res) => {
     const nilaiAkhir = nilaiModulRows.length ? totalNilai /
     nilaiModulRows.length : 0;
 
+    // Insert nilai akhir
+    const existingNilaiAkhir = await knex('nilai_akhir')
+        .where({user_id, praktikum_id})
+        .first();
+
+    if (existingNilaiAkhir) {
+      // Update nilai modul yang sudah ada
+      await knex('nilai_akhir')
+          .where({user_id, praktikum_id})
+          .update({nilai_akhir: nilaiAkhir});
+    } else {
+      // Insert nilai modul baru jika belum ada
+      await knex('nilai_akhir').insert({
+        user_id,
+        praktikum_id,
+        nilai_akhir: nilaiAkhir,
+      });
+    }
+
     // Response dengan nilai akhir
     return res.status(200).json({
       message: 'Nilai modul berhasil diupdate.',
