@@ -19,6 +19,7 @@ const getJadwalAsistensi = async (req, res) => {
             'jp.start_tgl',
             'jp.start_wkt as sesi',
             'u.nama as nama_asisten',
+            'k.kelompok_id',
             'k.nama_kelompok',
         )
         .where('p.praktikum_id', praktikum_id)
@@ -200,7 +201,6 @@ const getAllAsistensi = async (req, res) => {
     });
   }
 };
-
 
 module.exports = {
   getJadwalAsistensi,

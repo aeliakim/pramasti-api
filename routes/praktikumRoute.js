@@ -64,7 +64,7 @@ router.get('/:praktikumId/modul/jadwal', authenticateAccessToken,
 
 // melihat daftar modul
 router.get('/:praktikumId/modul', authenticateAccessToken,
-    authorize(['dosen', 'admin']), getModul);
+    authorize(['dosen', 'admin', 'koordinator']), getModul);
 
 // menambah modul
 router.post('/:praktikumId/modul', authenticateAccessToken,

@@ -12,8 +12,13 @@ const getPeserta = async (req, res) => {
     let query = knex('mhsPilihPraktikum as mp')
         .leftJoin('users as u', 'u.user_id', 'mp.user_id')
         .leftJoin('praktikum as p', 'p.praktikum_id', 'mp.praktikum_id')
-        .leftJoin('nilai_akhir as n', 'mp.user_id', 'n.user_id')
-        .where('mp.praktikum_id', praktikumId);
+        .leftJoin('nilai_akhir as n', function() {
+          this.on('mp.user_id', '=', 'n.user_id')
+              .andOn('mp.praktikum_id', '=', 'n.praktikum_id');
+        })
+        .where('mp.praktikum_id', praktikumId)
+        .distinct('mp.user_id', 'mp.praktikum_id',
+            'u.nama', 'u.nrp', 'u.departemen', 'n.nilai_akhir');
 
     // Jika filter semester dan tahun akademik disediakan, tambahkan ke query
     if (semester) {
@@ -31,6 +36,7 @@ const getPeserta = async (req, res) => {
         'u.departemen',
         'n.nilai_akhir',
     ).orderBy('u.nrp', 'asc');
+
     /* if (peserta.length === 0) {
       return res.status(404).json({
         code: '404',
@@ -96,7 +102,7 @@ const addOrUpdateNilai = async (req, res) => {
     const totalNilai = nilaiModulRows.reduce((
         acc, row) => acc + row.nilai_modul, 0);
     const nilaiAkhir = nilaiModulRows.length ? totalNilai /
-    nilaiModulRows.length : 0;
+     nilaiModulRows.length : 0;
 
     // Insert nilai akhir
     const existingNilaiAkhir = await knex('nilai_akhir')
@@ -117,7 +123,6 @@ const addOrUpdateNilai = async (req, res) => {
       });
     }
 
-    // Response dengan nilai akhir
     return res.status(200).json({
       message: 'Nilai modul berhasil diupdate.',
       user_id,
@@ -151,10 +156,10 @@ const getNilai = async (req, res) => {
         .where('m.praktikum_id', praktikum_id)
         .select(
             'm.id_modul as id_modul',
-            'm.nama as nama_modul',
+            'm.judul_modul as nama_modul',
             'n.nilai_modul',
         )
-        .orderBy('m.id', 'asc');
+        .orderBy('m.id_modul', 'asc');
 
     // Mengambil informasi peserta
     const pesertaInfo = await knex('users')

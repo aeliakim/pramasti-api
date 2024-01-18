@@ -11,6 +11,7 @@ const getAllPraktikum = async (req, res) => {
 
     if (selectedRole === 'praktikan') {
       // Praktikan melihat semua praktikum dengan nilai akhir
+      praktikums = await knex('praktikum');
       praktikums = await knex('praktikum')
           .leftJoin('nilai_akhir', function() {
             this.on('praktikum.praktikum_id', '=', 'nilai_akhir.praktikum_id')
@@ -49,6 +50,76 @@ const getAllPraktikum = async (req, res) => {
       code: '200',
       status: 'Success',
       data: praktikums,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      code: '500',
+      status: 'Internal Server Error',
+      errors: {
+        message: 'An error occurred while fetching data',
+      },
+    });
+  }
+};
+
+// melihat jadwal praktikum (praktikan)
+const getAllJadwal = async (req, res) => {
+  const userId = req.user.user_id;
+  try {
+    const jadwal = await knex('jadwalPraktikum')
+        .leftJoin('mhsPilihPraktikum', 'jadwalPraktikum.jadwal_id',
+            'mhsPilihPraktikum.jadwal_id')
+        .leftJoin('kelompok', 'jadwalPraktikum.jadwal_id', 'kelompok.jadwal_id')
+        .leftJoin('asistenJadwal', 'jadwalPraktikum.jadwal_id',
+            'asistenJadwal.jadwal_id')
+        .leftJoin('users', 'asistenJadwal.user_id', 'users.user_id')
+        .leftJoin('praktikum', 'jadwalPraktikum.praktikum_id',
+            'praktikum.praktikum_id')
+        .leftJoin('modul', 'jadwalPraktikum.id_modul', 'modul.id_modul')
+        .where('mhsPilihPraktikum.user_id', userId)
+        .select(
+            'jadwalPraktikum.jadwal_id',
+            'praktikum.praktikum_id',
+            'praktikum.praktikum_name',
+            'modul.judul_modul',
+            'jadwalPraktikum.start_tgl',
+            'jadwalPraktikum.start_wkt',
+            'users.user_id as asisten_user_id',
+            'users.nama as nama_asisten',
+            'kelompok.kelompok_id',
+            'kelompok.nama_kelompok',
+        );
+
+    return res.status(200).json({
+      code: '200',
+      status: 'Success',
+      data: jadwal,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      code: '500',
+      status: 'Internal Server Error',
+      errors: {
+        message: 'An error occurred while fetching data',
+      },
+    });
+  }
+};
+
+// melihat modul
+const getModul = async (req, res) => {
+  const praktikumId = req.params.praktikumId;
+  try {
+    const modul = await knex('modul')
+        .where('modul.praktikum_id', praktikumId)
+        .select('modul.id_modul', 'modul.judul_modul');
+
+    return res.status(200).json({
+      code: '200',
+      status: 'Success',
+      data: modul,
     });
   } catch (error) {
     console.error(error);
@@ -321,19 +392,21 @@ const deleteJadwalPraktikum = async (req, res) => {
   }
 };
 
+
+// update kode (req body belum diubah) + belum deploy
 // mengedit jadwal praktikum (koor)
 const editJadwal = async (req, res) => {
   const praktikum_id =req.params.praktikumId;
   const jadwal_id = req.params.jadwalId;
   const {
-    judul_modul,
+    id_modul,
     start_tgl,
     start_wkt,
     kuota,
   } = req.body;
   try {
     // validasi input
-    if (!judul_modul|| !start_tgl || !start_wkt || !kuota) {
+    if (!id_modul || !start_tgl || !start_wkt || !kuota) {
       return res.status(400).json({
         code: '400',
         status: 'Bad Request',
@@ -342,13 +415,6 @@ const editJadwal = async (req, res) => {
         },
       });
     }
-
-    // Mendapatkan judul modul dari tabel modul
-    const modul = await knex('modul')
-        .where({judul_modul: judul_modul})
-        .first();
-
-    const id_modul = modul.id_modul;
 
     const jadwal = await knex('jadwalPraktikum')
         .where({jadwal_id: jadwal_id, praktikum_id: praktikum_id})
@@ -783,76 +849,6 @@ const jadwalPrakKoor = async (req, res) => {
       code: '200',
       status: 'Success',
       data: jadwal,
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      code: '500',
-      status: 'Internal Server Error',
-      errors: {
-        message: 'An error occurred while fetching data',
-      },
-    });
-  }
-};
-
-// melihat jadwal praktikum (praktikan)
-const getAllJadwal = async (req, res) => {
-  const userId = req.user.user_id;
-  try {
-    const jadwal = await knex('jadwalPraktikum')
-        .leftJoin('mhsPilihPraktikum', 'jadwalPraktikum.jadwal_id',
-            'mhsPilihPraktikum.jadwal_id')
-        .leftJoin('kelompok', 'jadwalPraktikum.jadwal_id', 'kelompok.jadwal_id')
-        .leftJoin('asistenJadwal', 'jadwalPraktikum.jadwal_id',
-            'asistenJadwal.jadwal_id')
-        .leftJoin('users', 'asistenJadwal.user_id', 'users.user_id')
-        .leftJoin('praktikum', 'jadwalPraktikum.praktikum_id',
-            'praktikum.praktikum_id')
-        .leftJoin('modul', 'jadwalPraktikum.id_modul', 'modul.id_modul')
-        .where('mhsPilihPraktikum.user_id', userId)
-        .select(
-            'jadwalPraktikum.jadwal_id',
-            'praktikum.praktikum_id',
-            'praktikum.praktikum_name',
-            'modul.judul_modul',
-            'jadwalPraktikum.start_tgl',
-            'jadwalPraktikum.start_wkt',
-            'users.user_id as asisten_user_id',
-            'users.nama as nama_asisten',
-            'kelompok.kelompok_id',
-            'kelompok.nama_kelompok',
-        );
-
-    return res.status(200).json({
-      code: '200',
-      status: 'Success',
-      data: jadwal,
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      code: '500',
-      status: 'Internal Server Error',
-      errors: {
-        message: 'An error occurred while fetching data',
-      },
-    });
-  }
-};
-
-// melihat modul
-const getModul = async (req, res) => {
-  const praktikumId = req.params.praktikumId;
-  try {
-    const modul = await knex('modul')
-        .where('modul.praktikum_id', praktikumId)
-        .select('modul.id_modul', 'modul.judul_modul');
-
-    return res.status(200).json({
-      code: '200',
-      status: 'Success',
-      data: modul,
     });
   } catch (error) {
     console.error(error);
