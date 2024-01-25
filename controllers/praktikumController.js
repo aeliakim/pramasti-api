@@ -393,20 +393,20 @@ const deleteJadwalPraktikum = async (req, res) => {
 };
 
 
-// update kode (req body belum diubah) + belum deploy
+// belum deploy
 // mengedit jadwal praktikum (koor)
 const editJadwal = async (req, res) => {
   const praktikum_id =req.params.praktikumId;
   const jadwal_id = req.params.jadwalId;
   const {
-    id_modul,
+    judul_modul,
     start_tgl,
     start_wkt,
     kuota,
   } = req.body;
   try {
     // validasi input
-    if (!id_modul || !start_tgl || !start_wkt || !kuota) {
+    if (!judul_modul || !start_tgl || !start_wkt || !kuota) {
       return res.status(400).json({
         code: '400',
         status: 'Bad Request',
@@ -798,7 +798,7 @@ const getJadwalPraktikum = async (req, res) => {
   }
 };
 
-// melihat kelompok untuk 1 praktikum
+// melihat seluruh kelompok dari user (praktikan)
 const lihatKelompok = async (req, res) => {
   const jadwalId = req.params.jadwalId;
   try {
@@ -862,9 +862,60 @@ const jadwalPrakKoor = async (req, res) => {
   }
 };
 
+/* melihat jadwal untuk modul yang sudah diambil
+maupun belum untuk satu praktikum di page ambil jadwal praktikan*/
+
+const getJadwalPicked = async (req, res) => {
+  const user_id = req.user.user_id;
+  const praktikum_id = req.params.praktikumId;
+
+  try {
+    // Langkah 1: Ambil semua modul untuk praktikum tertentu
+    const praktikumModules = await knex('modul as m')
+        .select('m.id_modul', 'm.judul_modul')
+        .where('m.praktikum_id', praktikum_id)
+        .orderBy('m.judul_modul');
+
+    // Langkah 2: Periksa jadwal yang diambil oleh praktikan
+    const userSchedules = await knex('mhsPilihPraktikum as mpp')
+        .join('jadwalPraktikum as jp', 'mpp.jadwal_id', 'jp.jadwal_id')
+        .select('jp.id_modul', 'jp.start_tgl')
+        .where('mpp.user_id', user_id)
+        .andWhere('mpp.praktikum_id', praktikum_id);
+
+    // Membuat map dari userSchedules untuk memudahkan pencarian
+    const scheduleMap = userSchedules.reduce((acc, schedule) => {
+      acc[schedule.id_modul] = schedule.start_tgl;
+      return acc;
+    }, {});
+
+    // Menggabungkan informasi modul dengan jadwal yang diambil oleh praktikan
+    const modulesWithDates = praktikumModules.map((modul) => ({
+      id_modul: modul.id_modul,
+      judul_modul: modul.judul_modul,
+      user_start_tgl: scheduleMap[modul.id_modul] || null,
+    }));
+
+    return res.status(200).json({
+      code: '200',
+      status: 'OK',
+      data: modulesWithDates,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      code: '500',
+      status: 'Internal Server Error',
+      errors: {
+        message: 'An error occurred while fetching data',
+      },
+    });
+  }
+};
+
 module.exports = {
   getAllPraktikum, addPraktikum, deletePraktikum, addJadwalPraktikum,
   deleteJadwalPraktikum, getAllJadwal, ambilJadwal, lihatKelompok,
   jadwalPrakKoor, editJadwal, getJadwalPraktikum, editPraktikum,
-  getModul, addModul, deleteModul,
+  getModul, addModul, deleteModul, getJadwalPicked,
 };

@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 require('dotenv').config();
 const asistensiRoute = require('./routes/asistensiRoute.js');
 const nilaiRoute = require('./routes/nilaiRoute.js');
@@ -19,6 +20,18 @@ knex.raw('SELECT 1+1 AS result')
 
 const web = express();
 const port = process.env.PORT;
+
+// CORS Configuration
+const corsOptions = {
+  origin: ['http://localhost:3001', 'http://localhost:3000', 'https://frontend-dot-pramasti-api.et.r.appspot.com'],
+  optionsSuccessStatus: 200,
+};
+
+// Enable CORS with the above options
+web.use(cors(corsOptions));
+
+// Enable preflight requests for all routes
+web.options('*', cors(corsOptions));
 
 // eslint-disable-next-line new-cap
 const v1Router = express.Router();
