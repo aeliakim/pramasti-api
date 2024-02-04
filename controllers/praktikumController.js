@@ -800,25 +800,68 @@ const getJadwalPraktikum = async (req, res) => {
 
 // melihat seluruh kelompok dari user (praktikan)
 const lihatKelompok = async (req, res) => {
-  const jadwalId = req.params.jadwalId;
+  const userId = req.user.user_id;
   try {
-    const kelompokDetails = await knex('kelompok as k')
-        .join('mhsPilihPraktikum as mpp', 'k.kelompok_id', 'mpp.kelompok_id')
+    // Ambil semua kelompok dan modul yang diikuti oleh user
+    const kelompokDetails = await knex('mhsPilihPraktikum as mpp')
+        .join('kelompok as k', 'mpp.kelompok_id', 'k.kelompok_id')
+        .join('jadwalPraktikum as jp', 'k.jadwal_id', 'jp.jadwal_id')
+        .join('modul as m', 'jp.id_modul', 'm.id_modul')
+        .join('praktikum as p', 'jp.praktikum_id', 'p.praktikum_id')
         .join('users as u', 'mpp.user_id', 'u.user_id')
-        .where('k.jadwal_id', jadwalId)
-        .select(
-            'k.kelompok_id',
-            'u.nama',
-            'u.nrp',
-            'k.nama_kelompok',
-        )
-        .orderBy('k.kelompok_id');
+        .where('u.user_id', userId)
+        .select('p.praktikum_id', 'p.praktikum_name', 'k.kelompok_id',
+            'k.nama_kelompok', 'm.id_modul', 'm.judul_modul', 'jp.jadwal_id',
+            'u.nrp', 'u.nama')
+        .orderBy(['p.praktikum_id', 'm.id_modul', 'k.kelompok_id']);
 
-    if (!kelompokDetails.length) {
-      return res.status(404).json({message: 'Kelompok tidak ditemukan.'});
-    }
+    // Kelompokkan detail berdasarkan praktikum dan modul
+    const groupedDetails = kelompokDetails.reduce((acc, detail) => {
+      const {praktikum_id, praktikum_name, jadwal_id, id_modul, judul_modul,
+        kelompok_id, nama_kelompok, nrp, nama} = detail;
+      if (!acc[praktikum_id]) {
+        acc[praktikum_id] = {
+          praktikum_id,
+          praktikum_name,
+          modul: {},
+        };
+      }
+      if (!acc[praktikum_id].modul[id_modul]) {
+        acc[praktikum_id].modul[id_modul] = {
+          id_modul,
+          judul_modul,
+          jadwal_id,
+          kelompok: {},
+        };
+      }
+      if (!acc[praktikum_id].modul[id_modul].kelompok[kelompok_id]) {
+        acc[praktikum_id].modul[id_modul].kelompok[kelompok_id] = {
+          kelompok_id,
+          nama_kelompok,
+          anggota: [],
+        };
+      }
+      acc[praktikum_id].modul[id_modul]
+          .kelompok[kelompok_id].anggota.push({nrp, nama});
+      return acc;
+    }, {});
 
-    return res.status(200).json({kelompok: kelompokDetails});
+    // Ubah objek terkelompok menjadi array
+    const praktikumArray = Object.values(groupedDetails).map((praktikum) => ({
+      praktikum_id: praktikum.praktikum_id,
+      praktikum_name: praktikum.praktikum_name,
+      modul: Object.values(praktikum.modul).map((modul) => ({
+        id_modul: modul.id_modul,
+        judul_modul: modul.judul_modul,
+        jadwal_id: modul.jadwal_id,
+        kelompok: Object.values(modul.kelompok),
+      })),
+    }));
+
+    return res.status(200).json({
+      status: 'success',
+      data: praktikumArray,
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({
@@ -864,19 +907,16 @@ const jadwalPrakKoor = async (req, res) => {
 
 /* melihat jadwal untuk modul yang sudah diambil
 maupun belum untuk satu praktikum di page ambil jadwal praktikan*/
-
 const getJadwalPicked = async (req, res) => {
   const user_id = req.user.user_id;
   const praktikum_id = req.params.praktikumId;
 
   try {
-    // Langkah 1: Ambil semua modul untuk praktikum tertentu
     const praktikumModules = await knex('modul as m')
         .select('m.id_modul', 'm.judul_modul')
         .where('m.praktikum_id', praktikum_id)
         .orderBy('m.judul_modul');
 
-    // Langkah 2: Periksa jadwal yang diambil oleh praktikan
     const userSchedules = await knex('mhsPilihPraktikum as mpp')
         .join('jadwalPraktikum as jp', 'mpp.jadwal_id', 'jp.jadwal_id')
         .select('jp.id_modul', 'jp.start_tgl')

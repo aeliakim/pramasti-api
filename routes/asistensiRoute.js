@@ -8,6 +8,8 @@ const {
   addAsistensi,
   deleteAsistensi,
   getAllAsistensi,
+  lihatKelompokAsis,
+  lihatKelompokPrak,
 } = require('../controllers/asistensiController');
 const {
   authorize,
@@ -30,6 +32,14 @@ router.delete('/:praktikumId/asistensi/:jadwalId/:userId',
 // melihat seluruh jadwal asistensi yang diambil
 router.get('/jadwal-asistensi', authenticateAccessToken,
     authorize(['asisten']), getAllAsistensi);
+
+// melihat seluruh kelompok (asisten)
+router.get('/jadwal-asistensi/kelompok',
+    authenticateAccessToken, authorize(['asisten']), lihatKelompokAsis);
+
+// melihat kelompok berdasarkan praktikum (koor, dosen)
+router.get('/:praktikumId/asistensi/kelompok', authenticateAccessToken,
+    authorize(['koordinator', 'dosen']), lihatKelompokPrak);
 
 module.exports = router;
 
