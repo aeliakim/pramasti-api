@@ -765,12 +765,13 @@ const ambilJadwal = async (req, res) => {
 
 // melihat jadwal yang tersedia (praktikan)
 const getJadwalPraktikum = async (req, res) => {
-  const praktikumId = req.params.praktikumId;
+  const praktikum_id = req.params.praktikumId;
+  const user_id = req.user.user_id;
   try {
-    const jadwals = await knex('jadwalPraktikum')
+    // Query untuk mendapatkan semua jadwal yang tersedia
+    const availableSchedules = await knex('jadwalPraktikum')
         .leftJoin('modul', 'jadwalPraktikum.id_modul', 'modul.id_modul')
         .select(
-            'jadwalPraktikum.praktikum_id',
             'jadwalPraktikum.jadwal_id',
             'jadwalPraktikum.id_modul',
             'modul.judul_modul',
@@ -778,13 +779,36 @@ const getJadwalPraktikum = async (req, res) => {
             'jadwalPraktikum.start_wkt',
             'jadwalPraktikum.kuota',
         )
-        .where('jadwalPraktikum.praktikum_id', praktikumId)
+        .where('jadwalPraktikum.praktikum_id', praktikum_id)
         .orderBy('jadwalPraktikum.start_tgl', 'asc')
         .orderBy('jadwalPraktikum.start_wkt', 'asc');
 
+    // Query untuk mendapatkan semua jadwal yang sudah diambil oleh praktikan
+    const pickedSchedules = await knex('mhsPilihPraktikum')
+        .join('jadwalPraktikum', 'mhsPilihPraktikum.jadwal_id',
+            'jadwalPraktikum.jadwal_id')
+        .select(
+            'jadwalPraktikum.id_modul',
+            'jadwalPraktikum.start_tgl',
+        )
+        .where('mhsPilihPraktikum.user_id', user_id)
+        .andWhere('mhsPilihPraktikum.praktikum_id', praktikum_id);
+
+    // Membuat set dari pickedSchedules untuk memudahkan pencarian
+    const pickedScheduleSet = new Set(pickedSchedules
+        .map((schedule) => schedule.id_modul));
+
+    const filteredAvailableSchedules = availableSchedules
+        .filter((schedule) => !pickedScheduleSet.has(schedule.id_modul));
+    const filteredPickedSchedules = availableSchedules
+        .filter((schedule) => pickedScheduleSet.has(schedule.id_modul));
+
     return res.status(200).json({
       status: 'success',
-      data: jadwals,
+      data: {
+        availableSchedules: filteredAvailableSchedules,
+        pickedSchedules: filteredPickedSchedules,
+      },
     });
   } catch (error) {
     console.error(error);
@@ -905,57 +929,9 @@ const jadwalPrakKoor = async (req, res) => {
   }
 };
 
-/* melihat jadwal untuk modul yang sudah diambil
-maupun belum untuk satu praktikum di page ambil jadwal praktikan*/
-const getJadwalPicked = async (req, res) => {
-  const user_id = req.user.user_id;
-  const praktikum_id = req.params.praktikumId;
-
-  try {
-    const praktikumModules = await knex('modul as m')
-        .select('m.id_modul', 'm.judul_modul')
-        .where('m.praktikum_id', praktikum_id)
-        .orderBy('m.judul_modul');
-
-    const userSchedules = await knex('mhsPilihPraktikum as mpp')
-        .join('jadwalPraktikum as jp', 'mpp.jadwal_id', 'jp.jadwal_id')
-        .select('jp.id_modul', 'jp.start_tgl')
-        .where('mpp.user_id', user_id)
-        .andWhere('mpp.praktikum_id', praktikum_id);
-
-    // Membuat map dari userSchedules untuk memudahkan pencarian
-    const scheduleMap = userSchedules.reduce((acc, schedule) => {
-      acc[schedule.id_modul] = schedule.start_tgl;
-      return acc;
-    }, {});
-
-    // Menggabungkan informasi modul dengan jadwal yang diambil oleh praktikan
-    const modulesWithDates = praktikumModules.map((modul) => ({
-      id_modul: modul.id_modul,
-      judul_modul: modul.judul_modul,
-      user_start_tgl: scheduleMap[modul.id_modul] || null,
-    }));
-
-    return res.status(200).json({
-      code: '200',
-      status: 'OK',
-      data: modulesWithDates,
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      code: '500',
-      status: 'Internal Server Error',
-      errors: {
-        message: 'An error occurred while fetching data',
-      },
-    });
-  }
-};
-
 module.exports = {
   getAllPraktikum, addPraktikum, deletePraktikum, addJadwalPraktikum,
   deleteJadwalPraktikum, getAllJadwal, ambilJadwal, lihatKelompok,
   jadwalPrakKoor, editJadwal, getJadwalPraktikum, editPraktikum,
-  getModul, addModul, deleteModul, getJadwalPicked,
+  getModul, addModul, deleteModul,
 };
