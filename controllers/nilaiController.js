@@ -3,6 +3,7 @@ melihat daftar peserta berdasarkan tahun ajaran, */
 
 /* eslint-disable camelcase */
 const {knex} = require('../configs/data-source.js');
+const ExcelJS = require('exceljs');
 
 // menampilkan daftar peserta
 const getPeserta = async (req, res) => {
@@ -182,6 +183,88 @@ const getNilai = async (req, res) => {
   }
 };
 
+const downloadPeserta = async (req, res) => {
+  const praktikum_id = req.params.praktikumId;
+
+  try {
+    // Ambil data peserta praktikum dari database
+    const participants = await knex('mhsPilihPraktikum as mp')
+        .leftJoin('users as u', 'mp.user_id', 'u.user_id')
+        .leftJoin('praktikum as p', 'mp.praktikum_id', 'p.praktikum_id')
+        .leftJoin('nilai_akhir as n', function() {
+          this.on('mp.user_id', '=', 'n.user_id')
+              .andOn('mp.praktikum_id', '=', 'n.praktikum_id');
+        })
+        .where('mp.praktikum_id', praktikum_id)
+        .select(
+            'u.nama',
+            'u.nrp',
+            'u.departemen',
+            'n.nilai_akhir',
+            'mp.semester',
+            'mp.tahun_akademik',
+        )
+        .distinct()
+        .orderBy('u.nrp', 'asc');
+
+    console.log(participants);
+
+    // Ambil nama praktikum dari database
+    const praktikumData = await knex('praktikum')
+        .where('praktikum_id', praktikum_id)
+        .select('praktikum_name')
+        .first();
+
+    const praktikumName = praktikumData.praktikum_name;
+
+    // Buat workbook Excel baru
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Peserta Praktikum');
+
+    // Tambahkan header ke worksheet
+    worksheet.columns = [
+      {header: 'Nama', key: 'nama', width: 30},
+      {header: 'NRP', key: 'nrp', width: 15},
+      {header: 'Departemen', key: 'departemen', width: 30},
+      {header: 'Nilai', key: 'nilai_akhir', width: 10},
+      {header: 'Semester', key: 'semester', width: 15},
+      {header: 'Tahun Akademik', key: 'tahun_akademik', width: 20},
+    ];
+
+    // Isi data peserta ke dalam worksheet
+    participants.forEach((participant) => {
+      const rowValue = {
+        nama: participant.nama,
+        nrp: participant.nrp,
+        departemen: participant.departemen,
+        nilai_akhir: participant.nilai_akhir,
+        semester: participant.semester,
+        tahun_akademik: participant.tahun_akademik,
+      };
+      worksheet.addRow(rowValue);
+    });
+
+    // Set header untuk response agar browser mengenali sebagai file download
+    res.setHeader('Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition',
+        `attachment; filename="peserta-praktikum-${praktikumName}.xlsx"`);
+
+    // Kirim workbook sebagai response
+    await workbook.xlsx.write(res);
+    res.status(200).end();
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      code: '500',
+      status: 'Internal Server Error',
+      errors: {
+        message: 'An error occurred while downloading data',
+      },
+    });
+  }
+};
+
 module.exports = {
-  getPeserta, addOrUpdateNilai, getNilai,
+  getPeserta, addOrUpdateNilai, getNilai, downloadPeserta,
 };

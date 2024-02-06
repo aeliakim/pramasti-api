@@ -1,10 +1,11 @@
-/* menampilkan daftar peserta, menambahkan nilai, mengedit nilai */
+/* menampilkan daftar peserta, menambahkan nilai,
+mengedit nilai, download daftar peserta*/
 
 const express = require('express');
 // eslint-disable-next-line new-cap
 const router = express.Router();
 const {
-  getPeserta, addOrUpdateNilai, getNilai,
+  getPeserta, addOrUpdateNilai, getNilai, downloadPeserta,
 } = require('../controllers/nilaiController');
 const {
   authorize,
@@ -17,6 +18,9 @@ router.get('/:praktikumId/peserta', authenticateAccessToken,
 // menambahkan nilai
 router.put('/:praktikumId/peserta/:userId', authenticateAccessToken,
     authorize(['asisten', 'admin']), addOrUpdateNilai);
+
+router.get('/:praktikumId/peserta/download',
+    authenticateAccessToken, authorize(['dosen', 'admin']), downloadPeserta);
 
 router.get('/:praktikumId/peserta/:userId',
     authenticateAccessToken, authorize(['asisten', 'admin']), getNilai);
