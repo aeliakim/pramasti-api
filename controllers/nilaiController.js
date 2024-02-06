@@ -37,14 +37,6 @@ const getPeserta = async (req, res) => {
         'n.nilai_akhir',
     ).orderBy('u.nrp', 'asc');
 
-    /* if (peserta.length === 0) {
-      return res.status(404).json({
-        code: '404',
-        status: 'Not Found',
-        message: 'Tidak ada peserta yang terdaftar di praktikum ini.',
-      });
-    }*/
-
     return res.status(200).json({
       code: '200',
       status: 'Success',

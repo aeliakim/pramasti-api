@@ -39,7 +39,7 @@ router.get('/jadwal-asistensi/kelompok',
 
 // melihat kelompok berdasarkan praktikum (koor, dosen)
 router.get('/:praktikumId/asistensi/kelompok', authenticateAccessToken,
-    authorize(['koordinator', 'dosen']), lihatKelompokPrak);
+    authorize(['koordinator', 'dosen', 'admin']), lihatKelompokPrak);
 
 module.exports = router;
 
