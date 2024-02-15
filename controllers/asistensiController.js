@@ -163,6 +163,7 @@ const deleteAsistensi = async (req, res) => {
   }
 };
 
+// melihat seluruh jadwal asistensi yang diambil
 const getAllAsistensi = async (req, res) => {
   const userId = req.user.user_id;
   try {
@@ -202,9 +203,140 @@ const getAllAsistensi = async (req, res) => {
   }
 };
 
+// melihat seluruh kelompok (asisten)
+const lihatKelompokAsis = async (req, res) => {
+  const userId = req.user.user_id;
+  try {
+    // Ambil jadwal_id yang diasistensikan oleh asisten
+    const jadwalPraktikumAsisten = await knex('asistenJadwal as aj')
+        .join('praktikum as p', 'aj.praktikum_id', 'p.praktikum_id')
+        .where('user_id', userId)
+        .select('aj.jadwal_id', 'p.praktikum_id', 'p.praktikum_name');
+
+    /* Ambil detail kelompok untuk
+    setiap jadwal yang diasistensikan oleh asisten */
+    const kelompokDetails = await Promise.all(jadwalPraktikumAsisten
+        .map(async ({jadwal_id, praktikum_id, praktikum_name}) => {
+          const modulKelompokDetails = await knex('modul as m')
+              .join('jadwalPraktikum as jp', 'm.id_modul', 'jp.id_modul')
+              .join('kelompok as k', 'jp.jadwal_id', 'k.jadwal_id')
+              .join('mhsPilihPraktikum as mpp', 'k.kelompok_id',
+                  'mpp.kelompok_id')
+              .join('users as u', 'mpp.user_id', 'u.user_id')
+              .where('jp.jadwal_id', jadwal_id)
+              .andWhere('jp.praktikum_id', praktikum_id)
+              .select('m.id_modul', 'm.judul_modul', 'jp.jadwal_id',
+                  'k.kelompok_id', 'k.nama_kelompok', 'u.nama', 'u.nrp')
+              .orderBy(['k.nama_kelompok', 'u.nama']);
+
+          // Kelompokkan detail berdasarkan kelompok_id
+          const groupedByKelompok = modulKelompokDetails
+              .reduce((acc, detail) => {
+                const {kelompok_id, id_modul,
+                  judul_modul, jadwal_id, nama_kelompok} = detail;
+                if (!acc[kelompok_id]) {
+                  acc[kelompok_id] = {id_modul, judul_modul, jadwal_id,
+                    nama_kelompok, anggota: []};
+                }
+                acc[kelompok_id].anggota.push({nrp: detail.nrp,
+                  nama: detail.nama});
+                return acc;
+              }, {});
+
+          return {
+            praktikum_id,
+            praktikum_name,
+            kelompok: Object.values(groupedByKelompok),
+          };
+        }));
+
+    return res.status(200).json({
+      status: 'success',
+      data: kelompokDetails,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      code: '500',
+      status: 'Internal Server Error',
+      errors: {
+        message: 'An error occurred while fetching data',
+      },
+    });
+  }
+};
+
+// melihat kelompok berdasarkan praktikum (koor, dosen)
+const lihatKelompokPrak = async (req, res) => {
+  const praktikum_id = req.params.praktikumId;
+  try {
+    // Ambil semua kelompok dan modul yang terkait dengan praktikum tertentu
+    const kelompokDetails = await knex('kelompok as k')
+        .join('jadwalPraktikum as jp', 'k.jadwal_id', 'jp.jadwal_id')
+        .join('modul as m', 'jp.id_modul', 'm.id_modul')
+        .join('praktikum as p', 'jp.praktikum_id', 'p.praktikum_id')
+        .leftJoin('mhsPilihPraktikum as mpp', 'k.kelompok_id',
+            'mpp.kelompok_id')
+        .leftJoin('users as u', 'mpp.user_id', 'u.user_id')
+        .where('p.praktikum_id', praktikum_id)
+        .select('p.praktikum_id', 'p.praktikum_name', 'jp.jadwal_id',
+            'k.kelompok_id', 'k.nama_kelompok', 'm.id_modul', 'm.judul_modul',
+            'u.nrp', 'u.nama')
+        .orderBy(['p.praktikum_id', 'm.id_modul', 'k.kelompok_id']);
+
+    // Kelompokkan detail berdasarkan praktikum dan modul
+    const groupedDetails = kelompokDetails.reduce((acc, detail) => {
+      const {praktikum_id, praktikum_name, jadwal_id, id_modul, judul_modul,
+        kelompok_id, nama_kelompok, nrp, nama} = detail;
+      if (!acc[praktikum_id]) {
+        acc[praktikum_id] = {praktikum_id, praktikum_name, modul: {}};
+      }
+      if (!acc[praktikum_id].modul[id_modul]) {
+        acc[praktikum_id].modul[id_modul] = {id_modul, judul_modul,
+          jadwal_id, kelompok: {}};
+      }
+      if (!acc[praktikum_id].modul[id_modul].kelompok[kelompok_id]) {
+        acc[praktikum_id].modul[id_modul].kelompok[kelompok_id] = {
+          kelompok_id, nama_kelompok, anggota: []};
+      }
+      acc[praktikum_id].modul[id_modul]
+          .kelompok[kelompok_id].anggota.push({nrp, nama});
+      return acc;
+    }, {});
+
+    // Ubah objek terkelompok menjadi array
+    const praktikumArray = Object.values(groupedDetails).map((praktikum) => ({
+      praktikum_id: praktikum.praktikum_id,
+      praktikum_name: praktikum.praktikum_name,
+      modul: Object.values(praktikum.modul).map((modul) => ({
+        id_modul: modul.id_modul,
+        judul_modul: modul.judul_modul,
+        jadwal_id: modul.jadwal_id,
+        kelompok: Object.values(modul.kelompok),
+      })),
+    }));
+
+    return res.status(200).json({
+      status: 'success',
+      data: praktikumArray,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      code: '500',
+      status: 'Internal Server Error',
+      errors: {
+        message: 'An error occurred while fetching assistance schedules',
+      },
+    });
+  }
+};
+
 module.exports = {
   getJadwalAsistensi,
   addAsistensi,
   deleteAsistensi,
   getAllAsistensi,
+  lihatKelompokAsis,
+  lihatKelompokPrak,
 };

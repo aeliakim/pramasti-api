@@ -393,20 +393,20 @@ const deleteJadwalPraktikum = async (req, res) => {
 };
 
 
-// update kode (req body belum diubah) + belum deploy
+// belum deploy
 // mengedit jadwal praktikum (koor)
 const editJadwal = async (req, res) => {
   const praktikum_id =req.params.praktikumId;
   const jadwal_id = req.params.jadwalId;
   const {
-    id_modul,
+    judul_modul,
     start_tgl,
     start_wkt,
     kuota,
   } = req.body;
   try {
     // validasi input
-    if (!id_modul || !start_tgl || !start_wkt || !kuota) {
+    if (!judul_modul || !start_tgl || !start_wkt || !kuota) {
       return res.status(400).json({
         code: '400',
         status: 'Bad Request',
@@ -765,12 +765,13 @@ const ambilJadwal = async (req, res) => {
 
 // melihat jadwal yang tersedia (praktikan)
 const getJadwalPraktikum = async (req, res) => {
-  const praktikumId = req.params.praktikumId;
+  const praktikum_id = req.params.praktikumId;
+  const user_id = req.user.user_id;
   try {
-    const jadwals = await knex('jadwalPraktikum')
+    // Query untuk mendapatkan semua jadwal yang tersedia
+    const availableSchedules = await knex('jadwalPraktikum')
         .leftJoin('modul', 'jadwalPraktikum.id_modul', 'modul.id_modul')
         .select(
-            'jadwalPraktikum.praktikum_id',
             'jadwalPraktikum.jadwal_id',
             'jadwalPraktikum.id_modul',
             'modul.judul_modul',
@@ -778,13 +779,36 @@ const getJadwalPraktikum = async (req, res) => {
             'jadwalPraktikum.start_wkt',
             'jadwalPraktikum.kuota',
         )
-        .where('jadwalPraktikum.praktikum_id', praktikumId)
+        .where('jadwalPraktikum.praktikum_id', praktikum_id)
         .orderBy('jadwalPraktikum.start_tgl', 'asc')
         .orderBy('jadwalPraktikum.start_wkt', 'asc');
 
+    // Query untuk mendapatkan semua jadwal yang sudah diambil oleh praktikan
+    const pickedSchedules = await knex('mhsPilihPraktikum')
+        .join('jadwalPraktikum', 'mhsPilihPraktikum.jadwal_id',
+            'jadwalPraktikum.jadwal_id')
+        .select(
+            'jadwalPraktikum.id_modul',
+            'jadwalPraktikum.start_tgl',
+        )
+        .where('mhsPilihPraktikum.user_id', user_id)
+        .andWhere('mhsPilihPraktikum.praktikum_id', praktikum_id);
+
+    // Membuat set dari pickedSchedules untuk memudahkan pencarian
+    const pickedScheduleSet = new Set(pickedSchedules
+        .map((schedule) => schedule.id_modul));
+
+    const filteredAvailableSchedules = availableSchedules
+        .filter((schedule) => !pickedScheduleSet.has(schedule.id_modul));
+    const filteredPickedSchedules = availableSchedules
+        .filter((schedule) => pickedScheduleSet.has(schedule.id_modul));
+
     return res.status(200).json({
       status: 'success',
-      data: jadwals,
+      data: {
+        availableSchedules: filteredAvailableSchedules,
+        pickedSchedules: filteredPickedSchedules,
+      },
     });
   } catch (error) {
     console.error(error);
@@ -798,27 +822,70 @@ const getJadwalPraktikum = async (req, res) => {
   }
 };
 
-// melihat kelompok untuk 1 praktikum
+// melihat seluruh kelompok dari user (praktikan)
 const lihatKelompok = async (req, res) => {
-  const jadwalId = req.params.jadwalId;
+  const userId = req.user.user_id;
   try {
-    const kelompokDetails = await knex('kelompok as k')
-        .join('mhsPilihPraktikum as mpp', 'k.kelompok_id', 'mpp.kelompok_id')
+    // Ambil semua kelompok dan modul yang diikuti oleh user
+    const kelompokDetails = await knex('mhsPilihPraktikum as mpp')
+        .join('kelompok as k', 'mpp.kelompok_id', 'k.kelompok_id')
+        .join('jadwalPraktikum as jp', 'k.jadwal_id', 'jp.jadwal_id')
+        .join('modul as m', 'jp.id_modul', 'm.id_modul')
+        .join('praktikum as p', 'jp.praktikum_id', 'p.praktikum_id')
         .join('users as u', 'mpp.user_id', 'u.user_id')
-        .where('k.jadwal_id', jadwalId)
-        .select(
-            'k.kelompok_id',
-            'u.nama',
-            'u.nrp',
-            'k.nama_kelompok',
-        )
-        .orderBy('k.kelompok_id');
+        .where('u.user_id', userId)
+        .select('p.praktikum_id', 'p.praktikum_name', 'k.kelompok_id',
+            'k.nama_kelompok', 'm.id_modul', 'm.judul_modul', 'jp.jadwal_id',
+            'u.nrp', 'u.nama')
+        .orderBy(['p.praktikum_id', 'm.id_modul', 'k.kelompok_id']);
 
-    if (!kelompokDetails.length) {
-      return res.status(404).json({message: 'Kelompok tidak ditemukan.'});
-    }
+    // Kelompokkan detail berdasarkan praktikum dan modul
+    const groupedDetails = kelompokDetails.reduce((acc, detail) => {
+      const {praktikum_id, praktikum_name, jadwal_id, id_modul, judul_modul,
+        kelompok_id, nama_kelompok, nrp, nama} = detail;
+      if (!acc[praktikum_id]) {
+        acc[praktikum_id] = {
+          praktikum_id,
+          praktikum_name,
+          modul: {},
+        };
+      }
+      if (!acc[praktikum_id].modul[id_modul]) {
+        acc[praktikum_id].modul[id_modul] = {
+          id_modul,
+          judul_modul,
+          jadwal_id,
+          kelompok: {},
+        };
+      }
+      if (!acc[praktikum_id].modul[id_modul].kelompok[kelompok_id]) {
+        acc[praktikum_id].modul[id_modul].kelompok[kelompok_id] = {
+          kelompok_id,
+          nama_kelompok,
+          anggota: [],
+        };
+      }
+      acc[praktikum_id].modul[id_modul]
+          .kelompok[kelompok_id].anggota.push({nrp, nama});
+      return acc;
+    }, {});
 
-    return res.status(200).json({kelompok: kelompokDetails});
+    // Ubah objek terkelompok menjadi array
+    const praktikumArray = Object.values(groupedDetails).map((praktikum) => ({
+      praktikum_id: praktikum.praktikum_id,
+      praktikum_name: praktikum.praktikum_name,
+      modul: Object.values(praktikum.modul).map((modul) => ({
+        id_modul: modul.id_modul,
+        judul_modul: modul.judul_modul,
+        jadwal_id: modul.jadwal_id,
+        kelompok: Object.values(modul.kelompok),
+      })),
+    }));
+
+    return res.status(200).json({
+      status: 'success',
+      data: praktikumArray,
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({

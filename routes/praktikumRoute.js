@@ -5,7 +5,8 @@ const {
   getAllPraktikum, addPraktikum, deletePraktikum,
   addJadwalPraktikum, deleteJadwalPraktikum, getAllJadwal,
   ambilJadwal, editJadwal, lihatKelompok, jadwalPrakKoor,
-  getJadwalPraktikum, editPraktikum, addModul, getModul, deleteModul,
+  getJadwalPraktikum, editPraktikum, addModul, getModul,
+  deleteModul,
 } = require('../controllers/praktikumController');
 const {
   authorize,
@@ -49,9 +50,9 @@ router.get('/:praktikumId/ambil', authenticateAccessToken,
 router.post('/:praktikumId/ambil', authenticateAccessToken,
     authorize(['praktikan']), ambilJadwal);
 
-// melihat kelompok untuk 1 praktikum
-router.get('/jadwal-praktikum/:jadwalId/kelompok', authenticateAccessToken,
-    authorize(['praktikan', 'asisten', 'koordinator', 'dosen']), lihatKelompok);
+// melihat kelompok praktikan
+router.get('/jadwal-praktikum/kelompok', authenticateAccessToken,
+    authorize(['praktikan']), lihatKelompok);
 
 // mengedit jadwal praktikum
 router.put('/:praktikumId/modul/jadwal/:jadwalId',
