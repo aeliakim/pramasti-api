@@ -768,6 +768,10 @@ const getJadwalPraktikum = async (req, res) => {
   const praktikum_id = req.params.praktikumId;
   const user_id = req.user.user_id;
   try {
+    const allModules = await knex('modul')
+        .select('id_modul', 'judul_modul')
+        .where('praktikum_id', praktikum_id);
+
     // Query untuk mendapatkan semua jadwal yang tersedia
     const availableSchedules = await knex('jadwalPraktikum')
         .leftJoin('modul', 'jadwalPraktikum.id_modul', 'modul.id_modul')
@@ -794,20 +798,21 @@ const getJadwalPraktikum = async (req, res) => {
         .where('mhsPilihPraktikum.user_id', user_id)
         .andWhere('mhsPilihPraktikum.praktikum_id', praktikum_id);
 
-    // Membuat set dari pickedSchedules untuk memudahkan pencarian
-    const pickedScheduleSet = new Set(pickedSchedules
-        .map((schedule) => schedule.id_modul));
+    const pickedScheduleMap = pickedSchedules.reduce((acc, cur) => {
+      acc[cur.id_modul] = cur.start_tgl;
+      return acc;
+    }, {});
 
-    const filteredAvailableSchedules = availableSchedules
-        .filter((schedule) => !pickedScheduleSet.has(schedule.id_modul));
-    const filteredPickedSchedules = availableSchedules
-        .filter((schedule) => pickedScheduleSet.has(schedule.id_modul));
+    const updatedPickedSchedules = allModules.map((modul) => ({
+      ...modul,
+      start_tgl: pickedScheduleMap[modul.id_modul] || null,
+    }));
 
     return res.status(200).json({
       status: 'success',
       data: {
-        availableSchedules: filteredAvailableSchedules,
-        pickedSchedules: filteredPickedSchedules,
+        availableSchedules,
+        pickedSchedules: updatedPickedSchedules,
       },
     });
   } catch (error) {
