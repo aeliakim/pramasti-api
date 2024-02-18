@@ -23,7 +23,7 @@ const port = process.env.PORT;
 
 // CORS Configuration
 const corsOptions = {
-  origin: ['http://localhost:3001', 'http://localhost:3000', 'https://frontend-dot-pramasti-api.et.r.appspot.com'],
+  origin: process.env.CORS_ORIGIN_URL,
   optionsSuccessStatus: 200,
 };
 

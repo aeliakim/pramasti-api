@@ -763,15 +763,13 @@ const ambilJadwal = async (req, res) => {
   }
 };
 
-// melihat jadwal yang tersedia (praktikan)
 const getJadwalPraktikum = async (req, res) => {
-  const praktikum_id = req.params.praktikumId;
-  const user_id = req.user.user_id;
+  const praktikumId = req.params.praktikumId;
   try {
-    // Query untuk mendapatkan semua jadwal yang tersedia
-    const availableSchedules = await knex('jadwalPraktikum')
+    const jadwals = await knex('jadwalPraktikum')
         .leftJoin('modul', 'jadwalPraktikum.id_modul', 'modul.id_modul')
         .select(
+            'jadwalPraktikum.praktikum_id',
             'jadwalPraktikum.jadwal_id',
             'jadwalPraktikum.id_modul',
             'modul.judul_modul',
@@ -779,36 +777,13 @@ const getJadwalPraktikum = async (req, res) => {
             'jadwalPraktikum.start_wkt',
             'jadwalPraktikum.kuota',
         )
-        .where('jadwalPraktikum.praktikum_id', praktikum_id)
+        .where('jadwalPraktikum.praktikum_id', praktikumId)
         .orderBy('jadwalPraktikum.start_tgl', 'asc')
         .orderBy('jadwalPraktikum.start_wkt', 'asc');
 
-    // Query untuk mendapatkan semua jadwal yang sudah diambil oleh praktikan
-    const pickedSchedules = await knex('mhsPilihPraktikum')
-        .join('jadwalPraktikum', 'mhsPilihPraktikum.jadwal_id',
-            'jadwalPraktikum.jadwal_id')
-        .select(
-            'jadwalPraktikum.id_modul',
-            'jadwalPraktikum.start_tgl',
-        )
-        .where('mhsPilihPraktikum.user_id', user_id)
-        .andWhere('mhsPilihPraktikum.praktikum_id', praktikum_id);
-
-    // Membuat set dari pickedSchedules untuk memudahkan pencarian
-    const pickedScheduleSet = new Set(pickedSchedules
-        .map((schedule) => schedule.id_modul));
-
-    const filteredAvailableSchedules = availableSchedules
-        .filter((schedule) => !pickedScheduleSet.has(schedule.id_modul));
-    const filteredPickedSchedules = availableSchedules
-        .filter((schedule) => pickedScheduleSet.has(schedule.id_modul));
-
     return res.status(200).json({
       status: 'success',
-      data: {
-        availableSchedules: filteredAvailableSchedules,
-        pickedSchedules: filteredPickedSchedules,
-      },
+      data: jadwals,
     });
   } catch (error) {
     console.error(error);
