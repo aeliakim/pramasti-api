@@ -2,6 +2,14 @@
 
 PRAMASTI (Praktikum Manajemen System) adalah website manajemen praktikum Departemen Teknik Komputer ITS yang dapat digunakan baik oleh mahasiswa maupun dosen.
 
+## Prasyarat
+
+Sebelum menggunakan backend untuk PRAMASTI, pastikan sudah terinstall:
+
+-Node.js (disarankan menggunakan versi yang resmi direkomendasikan oleh Node.js)
+
+-MySQL (versi 8.0 ke atas)
+
 ## Panduan Memasang Backend PRAMASTI
 
 1. Import Database MySQL
