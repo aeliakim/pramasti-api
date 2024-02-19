@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 const {knex} = require('../configs/data-source.js');
+const moment = require('moment-timezone');
 
 // melihat daftar praktikum yang tersedia
 const getAllPraktikum = async (req, res) => {
@@ -766,7 +767,7 @@ const ambilJadwal = async (req, res) => {
 const getJadwalPraktikum = async (req, res) => {
   const praktikumId = req.params.praktikumId;
   try {
-    const jadwals = await knex('jadwalPraktikum')
+    let jadwals = await knex('jadwalPraktikum')
         .leftJoin('modul', 'jadwalPraktikum.id_modul', 'modul.id_modul')
         .select(
             'jadwalPraktikum.praktikum_id',
@@ -780,6 +781,15 @@ const getJadwalPraktikum = async (req, res) => {
         .where('jadwalPraktikum.praktikum_id', praktikumId)
         .orderBy('jadwalPraktikum.start_tgl', 'asc')
         .orderBy('jadwalPraktikum.start_wkt', 'asc');
+
+    jadwals = jadwals.map((jadwal) => {
+      const dateOnly = moment(jadwal.start_tgl).format('YYYY-MM-DD');
+      return {
+        ...jadwal,
+        start_tgl: dateOnly, // Gunakan tanggal yang sudah dikonversi
+        // start_wkt tetap tidak berubah
+      };
+    });
 
     return res.status(200).json({
       status: 'success',
